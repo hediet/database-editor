@@ -138,4 +138,74 @@ describe("fileFormat", () => {
 			expect(parsed.tables.get("User")).toEqual(original.tables.get("User"));
 		});
 	});
+
+	describe("PartialMarker", () => {
+		test("adds partial marker when truncated option is provided", async () => {
+			await db.exec(`
+        CREATE TABLE "User" (id TEXT PRIMARY KEY, name TEXT);
+        INSERT INTO "User" VALUES ('u1', 'Alice'), ('u2', 'Bob');
+      `);
+
+			const schema = await extractSchema(db);
+			const engine = new SyncEngine(db, schema);
+			const { dataset } = await engine.fetchCurrentData();
+
+			const json = serializeFlatDataset(dataset, undefined, {
+				truncated: new Map([["User", 10]]),
+			});
+			const parsed = JSON.parse(json);
+
+			expect(parsed.User).toMatchInlineSnapshot(`
+				[
+				  {
+				    "id": "u1",
+				    "name": "Alice",
+				  },
+				  {
+				    "id": "u2",
+				    "name": "Bob",
+				  },
+				  {
+				    "$partial": true,
+				    "skipped": 10,
+				  },
+				]
+			`);
+		});
+
+		test("filters out partial marker when parsing", () => {
+			const json = JSON.stringify({
+				User: [
+					{ id: "u1", name: "Alice" },
+					{ $partial: true, skipped: 100 },
+				],
+			});
+
+			const { dataset } = parseFlatDataset(json);
+
+			expect(dataset.tables.get("User")).toMatchInlineSnapshot(`
+				[
+				  {
+				    "id": "u1",
+				    "name": "Alice",
+				  },
+				]
+			`);
+		});
+
+		test("does not add marker when truncated count is 0", async () => {
+			await db.exec(`CREATE TABLE "User" (id TEXT PRIMARY KEY)`);
+
+			const schema = await extractSchema(db);
+			const engine = new SyncEngine(db, schema);
+			const { dataset } = await engine.fetchCurrentData();
+
+			const json = serializeFlatDataset(dataset, undefined, {
+				truncated: new Map([["User", 0]]),
+			});
+			const parsed = JSON.parse(json);
+
+			expect(parsed.User).toEqual([]);
+		});
+	});
 });

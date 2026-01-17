@@ -267,5 +267,51 @@ describe('SyncEngine', () => {
         }
       `);
     });
+
+    test('respects limit option', async () => {
+      await db.exec(`
+        CREATE TABLE "User" (id TEXT PRIMARY KEY, name TEXT);
+        INSERT INTO "User" VALUES ('u1', 'Alice'), ('u2', 'Bob'), ('u3', 'Charlie');
+      `);
+
+      const schema = await extractSchema(db);
+      const engine = new SyncEngine(db, schema);
+
+      const { dataset, truncated } = await engine.fetchCurrentData({ limit: 2 });
+
+      expect(dataset.tables.get('User')).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "u1",
+            "name": "Alice",
+          },
+          {
+            "id": "u2",
+            "name": "Bob",
+          },
+        ]
+      `);
+      expect(truncated.get('User')).toBe(1);
+    });
+
+    test('orders by primary key when fetching', async () => {
+      await db.exec(`
+        CREATE TABLE "User" (id TEXT PRIMARY KEY, name TEXT);
+        INSERT INTO "User" VALUES ('c', 'Charlie'), ('a', 'Alice'), ('b', 'Bob');
+      `);
+
+      const schema = await extractSchema(db);
+      const engine = new SyncEngine(db, schema);
+
+      const { dataset } = await engine.fetchCurrentData();
+
+      expect(dataset.tables.get('User')?.map(r => r.id)).toMatchInlineSnapshot(`
+        [
+          "a",
+          "b",
+          "c",
+        ]
+      `);
+    });
   });
 });
