@@ -807,12 +807,13 @@ describe('SchemaExtractor', () => {
 - [x] Auto-generate `.db-editor/` folder with base + schema
 - [ ] `--nested-limit` (deferred to Phase 8 with nested support)
 
-### Phase 7: CLI (PARTIAL)
+### ✅ Phase 7: CLI (DONE)
 - [x] Basic command structure (dump, sync, reset, preview)
 - [x] `--limit` option for dump
 - [x] `--sql` option for preview
-- [ ] Add `--flat` flag support throughout
-- [ ] Interactive mode with confirmation
+- [x] Interactive mode with confirmation (y/N prompt)
+- [x] `--yes` flag to skip confirmation
+- [ ] `--flat` flag (deferred - only flat format exists currently)
 
 ### Phase 8: Nested Presentation (TODO - Design Only)
 - [ ] Implement `toNested()` with PresentationOptions (expandDepth, limits)
