@@ -815,11 +815,15 @@ describe('SchemaExtractor', () => {
 - [x] `--yes` flag to skip confirmation
 - [ ] `--flat` flag (deferred - only flat format exists currently)
 
-### Phase 8: Nested Presentation (TODO - Design Only)
-- [ ] Implement `toNested()` with PresentationOptions (expandDepth, limits)
-- [ ] Support `$ref` markers (collapsed compositions)
-- [ ] Support `$partial` markers (truncated lists)
-- [ ] (fromNested not needed yet - base is always flat)
+### ✅ Phase 8: Nested Presentation (DONE)
+- [x] Build OwnershipTree from Schema (CASCADE → composition, pick dominant)
+- [x] Implement `toNested()` with limit and nestedLimit options
+- [x] Implement `fromNested()` with FK reconstruction
+- [x] Support `$ref` markers (collapsed compositions)
+- [x] Support `$partial` markers (truncated lists)
+- [x] Self-references treated as references (avoid cycles)
+
+**Total: 75 tests passing**
 
 ---
 
