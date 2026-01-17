@@ -10,7 +10,7 @@ import {
     parseFlatDataset,
     type FlatFileMetadata,
 } from "./fileFormat";
-import { generateJsonSchema } from "./jsonSchemaGenerator";
+import { generateJsonSchema, generateNestedJsonSchema } from "./jsonSchemaGenerator";
 import { buildOwnershipTree } from "./ownershipTree";
 import { toNested } from "./nested";
 
@@ -86,6 +86,9 @@ export class DatabaseEditor {
 		// Create .db-editor directory for metadata files
 		const dbEditorDir = path.join(outputDir, ".db-editor");
 
+		// Build ownership tree (needed for both nested format and nested schema)
+		const tree = buildOwnershipTree(this._schema);
+
 		let metadata: FlatFileMetadata = {};
 
 		if (options.createBase !== false) {
@@ -101,7 +104,9 @@ export class DatabaseEditor {
 
 			// Write JSON schema file (for autocomplete/validation)
 			const schemaPath = path.join(dbEditorDir, `${baseName}.schema.json`);
-			const jsonSchema = generateJsonSchema(this._schema);
+			const jsonSchema = options.flat
+				? generateJsonSchema(this._schema)
+				: generateNestedJsonSchema(this._schema, { ownershipTree: tree });
 			fs.writeFileSync(schemaPath, JSON.stringify(jsonSchema, null, "\t"));
 
 			// Set up metadata references
@@ -118,7 +123,6 @@ export class DatabaseEditor {
 			fs.writeFileSync(outputPath, json);
 		} else {
 			// Write nested format (default)
-			const tree = buildOwnershipTree(this._schema);
 			const nested = toNested(data, this._schema, tree, {
 				limit: options.limit,
 				nestedLimit: options.nestedLimit,

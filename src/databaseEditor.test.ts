@@ -4,6 +4,8 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 import { DatabaseEditor } from "./databaseEditor";
+import Ajv from "ajv";
+import addFormats from "ajv-formats";
 
 describe("DatabaseEditor", () => {
 	let db: PGlite;
@@ -103,7 +105,86 @@ describe("DatabaseEditor", () => {
 
 			const schemaContent = JSON.parse(fs.readFileSync(schemaPath, "utf-8"));
 			expect(schemaContent.$schema).toBe("http://json-schema.org/draft-07/schema#");
-			expect(schemaContent.definitions?.UserRow).toBeDefined();
+			// Nested format uses NestedRow suffix
+			expect(schemaContent.definitions?.UserNestedRow).toBeDefined();
+		});
+
+		test("nested dump validates against generated JSON schema", async () => {
+			await db.exec(`
+				CREATE TABLE "User" (
+					id TEXT PRIMARY KEY,
+					email TEXT NOT NULL,
+					created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+				);
+				CREATE TABLE "Session" (
+					id TEXT PRIMARY KEY,
+					token TEXT NOT NULL,
+					user_id TEXT NOT NULL REFERENCES "User"(id) ON DELETE CASCADE
+				);
+				INSERT INTO "User" VALUES ('u1', 'alice@test.com', '2026-01-17T10:00:00Z');
+				INSERT INTO "Session" VALUES ('s1', 'abc123', 'u1');
+				INSERT INTO "Session" VALUES ('s2', 'def456', 'u1');
+			`);
+			editor = await DatabaseEditor.fromClient(db);
+
+			const outputPath = path.join(tempDir, "data.json");
+			await editor.dump({ output: outputPath });
+
+			// Load dump and schema
+			const dumpContent = JSON.parse(fs.readFileSync(outputPath, "utf-8"));
+			const schemaPath = path.join(tempDir, ".db-editor", "data.schema.json");
+			const schemaContent = JSON.parse(fs.readFileSync(schemaPath, "utf-8"));
+
+			// Validate dump against schema
+			const ajv = new Ajv({ strict: false, allErrors: true });
+			addFormats(ajv);
+			const validate = ajv.compile(schemaContent);
+
+			const isValid = validate(dumpContent);
+			if (!isValid) {
+				console.error("Validation errors:", validate.errors);
+			}
+			expect(isValid).toBe(true);
+
+			// Verify nested structure
+			expect(dumpContent.user).toBeDefined();
+			expect(dumpContent.user[0].session).toHaveLength(2);
+			// FK column should be excluded from nested children
+			expect(dumpContent.user[0].session[0].user_id).toBeUndefined();
+		});
+
+		test("flat dump validates against generated JSON schema", async () => {
+			await db.exec(`
+				CREATE TABLE "User" (
+					id TEXT PRIMARY KEY,
+					email TEXT NOT NULL
+				);
+				INSERT INTO "User" VALUES ('u1', 'alice@test.com');
+			`);
+			editor = await DatabaseEditor.fromClient(db);
+
+			const outputPath = path.join(tempDir, "data.json");
+			await editor.dump({ output: outputPath, flat: true });
+
+			// Load dump and schema
+			const dumpContent = JSON.parse(fs.readFileSync(outputPath, "utf-8"));
+			const schemaPath = path.join(tempDir, ".db-editor", "data.schema.json");
+			const schemaContent = JSON.parse(fs.readFileSync(schemaPath, "utf-8"));
+
+			// Validate dump against schema
+			const ajv = new Ajv({ strict: false, allErrors: true });
+			addFormats(ajv);
+			const validate = ajv.compile(schemaContent);
+
+			const isValid = validate(dumpContent);
+			if (!isValid) {
+				console.error("Validation errors:", validate.errors);
+			}
+			expect(isValid).toBe(true);
+
+			// Verify flat structure (PascalCase table names)
+			expect(dumpContent.User).toBeDefined();
+			expect(dumpContent.User[0].email).toBe("alice@test.com");
 		});
 
 		test("main file references base and schema", async () => {

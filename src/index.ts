@@ -48,3 +48,12 @@ export { buildOwnershipTree } from './ownershipTree';
 export type { NestedRow, RefMarker, ToNestedOptions, NestedResult } from './nested';
 export { toNested, fromNested, isRefMarker } from './nested';
 
+// JSON Schema generation
+export type {
+  JsonSchema,
+  SchemaMode,
+  JsonSchemaOptions,
+  NestedJsonSchemaOptions,
+} from './jsonSchemaGenerator';
+export { generateJsonSchema, generateNestedJsonSchema } from './jsonSchemaGenerator';
+
