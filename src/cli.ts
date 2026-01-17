@@ -14,10 +14,11 @@ program
 	.description("Export database tables to a JSON file")
 	.requiredOption("-c, --connection <string>", "PostgreSQL connection string")
 	.requiredOption("-o, --output <file>", "Output JSON file path")
+	.option("-l, --limit <number>", "Maximum rows to export per table", parseInt)
 	.action(async (options) => {
 		const editor = await DatabaseEditor.connect(options.connection);
 		try {
-			await editor.dump({ output: options.output });
+			await editor.dump({ output: options.output, limit: options.limit });
 			console.log(`Exported to ${options.output}`);
 		} finally {
 			await editor.close();

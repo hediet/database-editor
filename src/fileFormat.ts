@@ -1,4 +1,5 @@
-import type { FlatDataset, FlatRow } from "./model";
+import type { FlatDataset, FlatRow, PartialMarker } from "./model";
+import { isPartialMarker } from "./model";
 
 /**
  * Metadata fields that can appear at the top level of a flat JSON file.
@@ -12,7 +13,12 @@ export interface FlatFileMetadata {
  * The full format of a flat JSON file (metadata + table data).
  */
 export interface FlatFileFormat extends FlatFileMetadata {
-	[tableName: string]: FlatRow[] | string | undefined;
+	[tableName: string]: (FlatRow | PartialMarker)[] | string | undefined;
+}
+
+export interface SerializeOptions {
+	/** Tables that were truncated, with count of skipped rows */
+	readonly truncated?: ReadonlyMap<string, number>;
 }
 
 /**
@@ -20,7 +26,8 @@ export interface FlatFileFormat extends FlatFileMetadata {
  */
 export function serializeFlatDataset(
 	dataset: FlatDataset,
-	metadata?: FlatFileMetadata
+	metadata?: FlatFileMetadata,
+	options?: SerializeOptions
 ): string {
 	const obj: FlatFileFormat = {};
 
@@ -34,7 +41,14 @@ export function serializeFlatDataset(
 
 	// Add table data
 	for (const [tableName, rows] of dataset.tables) {
-		obj[tableName] = [...rows];
+		const skippedCount = options?.truncated?.get(tableName);
+		if (skippedCount !== undefined && skippedCount > 0) {
+			// Add partial marker at end
+			const marker: PartialMarker = { $partial: true, skipped: skippedCount };
+			obj[tableName] = [...rows, marker];
+		} else {
+			obj[tableName] = [...rows];
+		}
 	}
 
 	return JSON.stringify(obj, null, 2);
@@ -42,6 +56,7 @@ export function serializeFlatDataset(
 
 /**
  * Parse a JSON string into a FlatDataset and metadata.
+ * PartialMarkers are filtered out - they indicate truncated data.
  */
 export function parseFlatDataset(json: string): {
 	dataset: FlatDataset;
@@ -58,7 +73,9 @@ export function parseFlatDataset(json: string): {
 		} else if (key === "$base" && typeof value === "string") {
 			metadata.$base = value;
 		} else if (Array.isArray(value)) {
-			tables.set(key, value);
+			// Filter out any PartialMarker entries
+			const rows = value.filter((row): row is FlatRow => !isPartialMarker(row));
+			tables.set(key, rows);
 		}
 	}
 

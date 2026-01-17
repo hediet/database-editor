@@ -3,8 +3,8 @@ import { PGlite } from "@electric-sql/pglite";
 import { extractSchema } from "./schemaExtractor";
 import { SyncEngine } from "./syncEngine";
 import {
-    serializeFlatDataset,
-    parseFlatDataset
+	serializeFlatDataset,
+	parseFlatDataset
 } from "./fileFormat";
 
 describe("fileFormat", () => {
@@ -23,9 +23,9 @@ describe("fileFormat", () => {
 
 			const schema = await extractSchema(db);
 			const engine = new SyncEngine(db, schema);
-			const data = await engine.fetchCurrentData();
+			const { dataset } = await engine.fetchCurrentData();
 
-			const json = serializeFlatDataset(data);
+			const json = serializeFlatDataset(dataset);
 			const parsed = JSON.parse(json);
 
 			expect(parsed).toMatchInlineSnapshot(`
@@ -49,9 +49,9 @@ describe("fileFormat", () => {
 
 			const schema = await extractSchema(db);
 			const engine = new SyncEngine(db, schema);
-			const data = await engine.fetchCurrentData();
+			const { dataset } = await engine.fetchCurrentData();
 
-			const json = serializeFlatDataset(data, {
+			const json = serializeFlatDataset(dataset, {
 				$schema: "./.db-editor/data.schema.json",
 				$base: "./.db-editor/data.base.json",
 			});
@@ -130,7 +130,7 @@ describe("fileFormat", () => {
 
 			const schema = await extractSchema(db);
 			const engine = new SyncEngine(db, schema);
-			const original = await engine.fetchCurrentData();
+			const { dataset: original } = await engine.fetchCurrentData();
 
 			const json = serializeFlatDataset(original);
 			const { dataset: parsed } = parseFlatDataset(json);

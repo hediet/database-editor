@@ -241,11 +241,11 @@ describe('SyncEngine', () => {
       const schema = await extractSchema(db);
       const engine = new SyncEngine(db, schema);
 
-      const data = await engine.fetchCurrentData();
+      const { dataset } = await engine.fetchCurrentData();
 
       expect({
-        User: data.tables.get('User'),
-        Project: data.tables.get('Project'),
+        User: dataset.tables.get('User'),
+        Project: dataset.tables.get('Project'),
       }).toMatchInlineSnapshot(`
         {
           "Project": [

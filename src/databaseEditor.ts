@@ -17,6 +17,8 @@ export interface DumpOptions {
 	output: string;
 	/** Whether to create base file for three-way merge */
 	createBase?: boolean;
+	/** Maximum rows to fetch per table */
+	limit?: number;
 }
 
 export interface SyncResult {
@@ -65,7 +67,7 @@ export class DatabaseEditor {
 	 * Dump current database state to a flat JSON file.
 	 */
 	async dump(options: DumpOptions): Promise<void> {
-		const data = await this._engine.fetchCurrentData();
+		const { dataset: data, truncated } = await this._engine.fetchCurrentData({ limit: options.limit });
 
 		// Prepare output directory
 		const outputPath = path.resolve(options.output);
@@ -83,7 +85,7 @@ export class DatabaseEditor {
 				fs.mkdirSync(dbEditorDir, { recursive: true });
 			}
 
-			// Write base file (flat, for three-way merge)
+			// Write base file (flat, for three-way merge) - always without partial markers
 			const basePath = path.join(dbEditorDir, `${baseName}.base.json`);
 			const baseJson = serializeFlatDataset(data);
 			fs.writeFileSync(basePath, baseJson);
@@ -100,8 +102,8 @@ export class DatabaseEditor {
 			};
 		}
 
-		// Write main output file
-		const json = serializeFlatDataset(data, metadata);
+		// Write main output file (with partial markers if truncated)
+		const json = serializeFlatDataset(data, metadata, { truncated });
 		fs.writeFileSync(outputPath, json);
 	}
 
@@ -129,7 +131,7 @@ export class DatabaseEditor {
 		// Update base file after successful sync
 		if (metadata.$base) {
 			const basePath = path.resolve(path.dirname(inputPath), metadata.$base);
-			const currentData = await this._engine.fetchCurrentData();
+			const { dataset: currentData } = await this._engine.fetchCurrentData();
 			const baseJson = serializeFlatDataset(currentData);
 			fs.writeFileSync(basePath, baseJson);
 		}

@@ -43,6 +43,19 @@ export interface FlatDataset {
 
 export type FlatRow = Readonly<Record<string, unknown>>;
 
+/**
+ * Marker indicating that some rows were omitted due to limits.
+ * This appears as the last element in a row array when --limit was used.
+ */
+export interface PartialMarker {
+  readonly $partial: true;
+  readonly skipped: number;
+}
+
+export function isPartialMarker(value: unknown): value is PartialMarker {
+  return typeof value === "object" && value !== null && "$partial" in value && (value as PartialMarker).$partial === true;
+}
+
 // === Change Types ===
 
 export type Change = InsertChange | UpdateChange | DeleteChange;
