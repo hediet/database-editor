@@ -797,17 +797,20 @@ describe('SchemaExtractor', () => {
 - [x] Rollback on error
 - [x] Integration tests with PGLite (8 tests passing)
 
-**Total: 31 tests passing**
+**Total: 58 tests passing**
 
-### Phase 6: JSON Schema & Limits (TODO)
-- [ ] Detect auto-generated columns (DEFAULT, SERIAL, GENERATED)
-- [ ] Implement `insert` mode (auto-generated fields optional)
-- [ ] Implement `--limit` and `--nested-limit` for dumps
-- [ ] Implement `PartialMarker` handling (insert on dump, ignore on sync)
-- [ ] Auto-generate `.db-editor/` folder with base + schema
+### ✅ Phase 6: JSON Schema & Limits (DONE)
+- [x] Detect auto-generated columns (DEFAULT, SERIAL, GENERATED)
+- [x] Implement `insert` mode (auto-generated fields optional)
+- [x] Implement `--limit` for dumps (flat format)
+- [x] Implement `PartialMarker` handling (insert on dump, ignore on sync)
+- [x] Auto-generate `.db-editor/` folder with base + schema
+- [ ] `--nested-limit` (deferred to Phase 8 with nested support)
 
-### Phase 7: CLI (TODO)
-- [ ] Implement new command structure (dump, sync, reset)
+### Phase 7: CLI (PARTIAL)
+- [x] Basic command structure (dump, sync, reset, preview)
+- [x] `--limit` option for dump
+- [x] `--sql` option for preview
 - [ ] Add `--flat` flag support throughout
 - [ ] Interactive mode with confirmation
 
