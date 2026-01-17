@@ -27,9 +27,9 @@ export function generateMermaid(schema: Schema, options: MermaidOptions = {}): s
 			for (const column of table.columns) {
 				const pkMarker = table.primaryKey.includes(column.name) ? " PK" : "";
 				const fkMarker = isForeignKey(column.name, tableName, schema) ? " FK" : "";
-				const nullMarker = column.isNullable ? "?" : "";
+				const nullComment = column.isNullable ? ' "nullable"' : "";
 				lines.push(
-					`        ${mapPgTypeToMermaid(column.type)}${nullMarker} ${escapeMermaidId(column.name)}${pkMarker}${fkMarker}`
+					`        ${mapPgTypeToMermaid(column.type)} ${escapeMermaidId(column.name)}${pkMarker}${fkMarker}${nullComment}`
 				);
 			}
 			lines.push("    }");

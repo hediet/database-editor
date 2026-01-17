@@ -25,7 +25,7 @@ describe("generateMermaid", () => {
 			    User {
 			        uuid id PK
 			        string email
-			        string? name
+			        string name \"nullable\"
 			    }"
 		`);
 	});
@@ -127,8 +127,22 @@ describe("generateMermaid", () => {
 
 		// CASCADE (composition) uses solid line --
 		// SET NULL (reference) uses dotted line ..
-		expect(mermaid).toContain('User ||--o{ Session : "fk session user"');
-		expect(mermaid).toContain('User ||..o{ AuditLog : "fk audit user"');
+		expect(mermaid).toMatchInlineSnapshot(`
+			"erDiagram
+			    User {
+			        uuid id PK
+			    }
+			    Session {
+			        uuid id PK
+			        uuid user_id FK
+			    }
+			    AuditLog {
+			        uuid id PK
+			        uuid user_id FK \"nullable\"
+			    }
+			    User ||--o{ Session : \"fk session user\"
+			    User ||..o{ AuditLog : \"fk audit user\""
+		`);
 	});
 
 	test("handles tables with no columns when showColumns is false", () => {
@@ -226,6 +240,11 @@ describe("generateMermaid", () => {
 		const schema = createSchema(tables, []);
 		const mermaid = generateMermaid(schema);
 
-		expect(mermaid).toContain('"user-data"');
+		expect(mermaid).toMatchInlineSnapshot(`
+			"erDiagram
+			    \"user-data\" {
+			        uuid id PK
+			    }"
+		`);
 	});
 });
