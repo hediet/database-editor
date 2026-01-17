@@ -57,3 +57,7 @@ export type {
 } from './jsonSchemaGenerator';
 export { generateJsonSchema, generateNestedJsonSchema } from './jsonSchemaGenerator';
 
+// Mermaid diagram generation
+export type { MermaidOptions } from './mermaidGenerator';
+export { generateMermaid } from './mermaidGenerator';
+

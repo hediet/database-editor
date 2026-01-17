@@ -1,7 +1,10 @@
 import { Command } from "commander";
 import * as readline from "readline";
+import * as fs from "fs";
 import { DatabaseEditor } from "./databaseEditor";
 import { generateSql } from "./sqlGenerator";
+import { generateMermaid } from "./mermaidGenerator";
+import { buildOwnershipTree } from "./ownershipTree";
 
 async function confirm(message: string): Promise<boolean> {
 	const rl = readline.createInterface({
@@ -163,6 +166,33 @@ program
 
 			await editor.reset(options.file);
 			console.log("Database reset to match file.");
+		} finally {
+			await editor.close();
+		}
+	});
+
+program
+	.command("mermaid")
+	.description("Export database schema as a Mermaid ER diagram")
+	.requiredOption("-c, --connection <string>", "PostgreSQL connection string")
+	.option("-o, --output <file>", "Output file (defaults to stdout)")
+	.option("--no-columns", "Hide column details")
+	.action(async (options) => {
+		const editor = await DatabaseEditor.connect(options.connection);
+		try {
+			const tree = buildOwnershipTree(editor.schema);
+			const mermaid = generateMermaid(editor.schema, {
+				showColumns: options.columns,
+				highlightCompositions: true,
+				ownershipTree: tree,
+			});
+
+			if (options.output) {
+				fs.writeFileSync(options.output, mermaid);
+				console.log(`Exported to ${options.output}`);
+			} else {
+				console.log(mermaid);
+			}
 		} finally {
 			await editor.close();
 		}
