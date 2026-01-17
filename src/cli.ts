@@ -1,6 +1,46 @@
 import { Command } from "commander";
+import * as readline from "readline";
 import { DatabaseEditor } from "./databaseEditor";
 import { generateSql } from "./sqlGenerator";
+
+async function confirm(message: string): Promise<boolean> {
+	const rl = readline.createInterface({
+		input: process.stdin,
+		output: process.stdout,
+	});
+
+	return new Promise((resolve) => {
+		rl.question(`${message} (y/N) `, (answer) => {
+			rl.close();
+			resolve(answer.toLowerCase() === "y" || answer.toLowerCase() === "yes");
+		});
+	});
+}
+
+function printChangeSet(changeSet: { changes: readonly import("./model").Change[] }): void {
+	console.log("Changes to apply:");
+	for (const change of changeSet.changes) {
+		if (change.type === "insert") {
+			console.log(`  INSERT ${change.table}`);
+			for (const [key, value] of Object.entries(change.row)) {
+				console.log(`    + ${key}: ${JSON.stringify(value)}`);
+			}
+		} else if (change.type === "update") {
+			console.log(`  UPDATE ${change.table} pk=${JSON.stringify(change.primaryKey)}`);
+			for (const key of Object.keys(change.newValues)) {
+				const oldVal = change.oldValues[key];
+				const newVal = change.newValues[key];
+				console.log(`    ${key}: ${JSON.stringify(oldVal)} → ${JSON.stringify(newVal)}`);
+			}
+		} else {
+			console.log(`  DELETE ${change.table} pk=${JSON.stringify(change.primaryKey)}`);
+			for (const [key, value] of Object.entries(change.oldRow)) {
+				console.log(`    - ${key}: ${JSON.stringify(value)}`);
+			}
+		}
+	}
+	console.log(`Total: ${changeSet.changes.length} change(s)`);
+}
 
 const program = new Command();
 
@@ -39,28 +79,7 @@ program
 				console.log("No changes to apply.");
 				return;
 			}
-			console.log("Changes to apply:");
-			for (const change of changeSet.changes) {
-				if (change.type === "insert") {
-					console.log(`  INSERT ${change.table}`);
-					for (const [key, value] of Object.entries(change.row)) {
-						console.log(`    + ${key}: ${JSON.stringify(value)}`);
-					}
-				} else if (change.type === "update") {
-					console.log(`  UPDATE ${change.table} pk=${JSON.stringify(change.primaryKey)}`);
-					for (const key of Object.keys(change.newValues)) {
-						const oldVal = change.oldValues[key];
-						const newVal = change.newValues[key];
-						console.log(`    ${key}: ${JSON.stringify(oldVal)} → ${JSON.stringify(newVal)}`);
-					}
-				} else {
-					console.log(`  DELETE ${change.table} pk=${JSON.stringify(change.primaryKey)}`);
-					for (const [key, value] of Object.entries(change.oldRow)) {
-						console.log(`    - ${key}: ${JSON.stringify(value)}`);
-					}
-				}
-			}
-			console.log(`Total: ${changeSet.changes.length} change(s)`);
+			printChangeSet(changeSet);
 
 			if (options.sql) {
 				console.log("\nSQL statements:");
@@ -79,9 +98,10 @@ program
 
 program
 	.command("sync")
-	.description("Apply changes from file to database (three-way merge)")
+	.description("Apply changes from file to database (interactive by default)")
 	.requiredOption("-c, --connection <string>", "PostgreSQL connection string")
 	.requiredOption("-f, --file <file>", "JSON file to sync")
+	.option("-y, --yes", "Skip confirmation prompt")
 	.action(async (options) => {
 		const editor = await DatabaseEditor.connect(options.connection);
 		try {
@@ -90,6 +110,17 @@ program
 				console.log("No changes to apply.");
 				return;
 			}
+
+			printChangeSet(changeSet);
+
+			if (!options.yes) {
+				const confirmed = await confirm("\nApply these changes?");
+				if (!confirmed) {
+					console.log("Aborted.");
+					return;
+				}
+			}
+
 			await editor.reset(options.file);
 			console.log(`Applied ${changeSet.changes.length} change(s).`);
 		} finally {
@@ -99,12 +130,29 @@ program
 
 program
 	.command("reset")
-	.description("Reset database to match file exactly (two-way diff)")
+	.description("Reset database to match file exactly (two-way diff, interactive)")
 	.requiredOption("-c, --connection <string>", "PostgreSQL connection string")
 	.requiredOption("-f, --file <file>", "JSON file to reset to")
+	.option("-y, --yes", "Skip confirmation prompt")
 	.action(async (options) => {
 		const editor = await DatabaseEditor.connect(options.connection);
 		try {
+			const changeSet = await editor.preview(options.file);
+			if (changeSet.changes.length === 0) {
+				console.log("No changes to apply.");
+				return;
+			}
+
+			printChangeSet(changeSet);
+
+			if (!options.yes) {
+				const confirmed = await confirm("\nApply these changes? This will reset the database to match the file.");
+				if (!confirmed) {
+					console.log("Aborted.");
+					return;
+				}
+			}
+
 			await editor.reset(options.file);
 			console.log("Database reset to match file.");
 		} finally {
