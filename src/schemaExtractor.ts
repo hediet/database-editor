@@ -90,13 +90,30 @@ async function extractPrimaryKey(client: DbClient, schemaName: string, tableName
   return result.rows.map(r => r.column_name);
 }
 
+/**
+ * Parse a PostgreSQL array string like "{a,b,c}" into a JavaScript array.
+ * Handles the case where pg driver returns arrays as strings.
+ */
+function parsePostgresArray(value: string | string[]): string[] {
+  if (Array.isArray(value)) {
+    return value;
+  }
+  // PostgreSQL array format: {element1,element2,...}
+  if (typeof value === 'string' && value.startsWith('{') && value.endsWith('}')) {
+    const inner = value.slice(1, -1);
+    if (inner === '') return [];
+    return inner.split(',');
+  }
+  return [value];
+}
+
 async function extractRelationships(client: DbClient, schemaName: string): Promise<Relationship[]> {
   const result = await client.query<{
     constraint_name: string;
     from_table: string;
-    from_columns: string[];
+    from_columns: string | string[];
     to_table: string;
-    to_columns: string[];
+    to_columns: string | string[];
     delete_rule: string;
     update_rule: string;
   }>(`
@@ -142,9 +159,9 @@ async function extractRelationships(client: DbClient, schemaName: string): Promi
   return result.rows.map(row => ({
     id: row.constraint_name,
     fromTable: row.from_table,
-    fromColumns: row.from_columns,
+    fromColumns: parsePostgresArray(row.from_columns),
     toTable: row.to_table,
-    toColumns: row.to_columns,
+    toColumns: parsePostgresArray(row.to_columns),
     onDelete: row.delete_rule as Relationship['onDelete'],
     onUpdate: row.update_rule as Relationship['onUpdate'],
   }));

@@ -11,14 +11,22 @@ import {
     type FlatFileMetadata,
 } from "./fileFormat";
 import { generateJsonSchema } from "./jsonSchemaGenerator";
+import { buildOwnershipTree } from "./ownershipTree";
+import { toNested } from "./nested";
 
 export interface DumpOptions {
 	/** Output file path */
 	output: string;
+	/** Connection string to store in dump file */
+	connectionString?: string;
 	/** Whether to create base file for three-way merge */
 	createBase?: boolean;
 	/** Maximum rows to fetch per table */
 	limit?: number;
+	/** Use flat format instead of nested (default: false) */
+	flat?: boolean;
+	/** Maximum nested children per parent */
+	nestedLimit?: number;
 }
 
 export interface SyncResult {
@@ -64,7 +72,8 @@ export class DatabaseEditor {
 	}
 
 	/**
-	 * Dump current database state to a flat JSON file.
+	 * Dump current database state to a JSON file.
+	 * By default uses nested format; use flat: true for flat format.
 	 */
 	async dump(options: DumpOptions): Promise<void> {
 		const { dataset: data, truncated } = await this._engine.fetchCurrentData({ limit: options.limit });
@@ -98,13 +107,36 @@ export class DatabaseEditor {
 			// Set up metadata references
 			metadata = {
 				$schema: `./.db-editor/${baseName}.schema.json`,
+				$connection: options.connectionString,
 				$base: `./.db-editor/${baseName}.base.json`,
 			};
 		}
 
-		// Write main output file (with partial markers if truncated)
-		const json = serializeFlatDataset(data, metadata, { truncated });
-		fs.writeFileSync(outputPath, json);
+		if (options.flat) {
+			// Write flat format (with partial markers if truncated)
+			const json = serializeFlatDataset(data, metadata, { truncated });
+			fs.writeFileSync(outputPath, json);
+		} else {
+			// Write nested format (default)
+			const tree = buildOwnershipTree(this._schema);
+			const nested = toNested(data, this._schema, tree, {
+				limit: options.limit,
+				nestedLimit: options.nestedLimit,
+			});
+
+			// Build nested output object with metadata
+			const output: Record<string, unknown> = {};
+			if (metadata.$schema) output.$schema = metadata.$schema;
+			if (metadata.$connection) output.$connection = metadata.$connection;
+			if (metadata.$base) output.$base = metadata.$base;
+
+			// Add nested data
+			for (const [key, rows] of Object.entries(nested.data)) {
+				output[key] = rows;
+			}
+
+			fs.writeFileSync(outputPath, JSON.stringify(output, null, 2));
+		}
 	}
 
 	/**

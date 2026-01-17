@@ -189,4 +189,106 @@ describe('extractSchema', () => {
     const tableNames = [...schema.tables.keys()];
     expect(tableNames).toEqual(['User']);
   });
+
+  test('extracts multiple foreign keys on same table', async () => {
+    await db.exec(`
+      CREATE TABLE "User" (id TEXT PRIMARY KEY);
+      CREATE TABLE "Organization" (id TEXT PRIMARY KEY);
+      CREATE TABLE "Membership" (
+        id TEXT PRIMARY KEY,
+        "userId" TEXT NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+        "organizationId" TEXT NOT NULL REFERENCES "Organization"(id) ON DELETE CASCADE
+      );
+    `);
+
+    const schema = await extractSchema(db);
+    const membershipFKs = schema.relationships.filter(r => r.fromTable === 'Membership');
+
+    expect(membershipFKs.length).toBe(2);
+    expect(membershipFKs.map(fk => ({
+      fromColumns: fk.fromColumns,
+      toTable: fk.toTable,
+      toColumns: fk.toColumns,
+    }))).toMatchInlineSnapshot(`
+      [
+        {
+          "fromColumns": [
+            "organizationId",
+          ],
+          "toColumns": [
+            "id",
+          ],
+          "toTable": "Organization",
+        },
+        {
+          "fromColumns": [
+            "userId",
+          ],
+          "toColumns": [
+            "id",
+          ],
+          "toTable": "User",
+        },
+      ]
+    `);
+  });
+
+  test('FK columns are proper arrays not strings', async () => {
+    await db.exec(`
+      CREATE TABLE "Parent" (id TEXT PRIMARY KEY);
+      CREATE TABLE "Child" (
+        id TEXT PRIMARY KEY,
+        "parentId" TEXT REFERENCES "Parent"(id)
+      );
+    `);
+
+    const schema = await extractSchema(db);
+    const rel = schema.relationships[0];
+
+    // Verify columns are actual arrays, not strings that look like arrays
+    expect(Array.isArray(rel.fromColumns)).toBe(true);
+    expect(Array.isArray(rel.toColumns)).toBe(true);
+    expect(rel.fromColumns).toEqual(['parentId']);
+    expect(rel.toColumns).toEqual(['id']);
+  });
+
+  test('extracts different ON DELETE actions', async () => {
+    await db.exec(`
+      CREATE TABLE "User" (id TEXT PRIMARY KEY);
+      CREATE TABLE "Session" (
+        id TEXT PRIMARY KEY,
+        "userId" TEXT REFERENCES "User"(id) ON DELETE CASCADE
+      );
+      CREATE TABLE "AuditLog" (
+        id TEXT PRIMARY KEY,
+        "userId" TEXT REFERENCES "User"(id) ON DELETE SET NULL
+      );
+      CREATE TABLE "Profile" (
+        id TEXT PRIMARY KEY,
+        "userId" TEXT REFERENCES "User"(id) ON DELETE RESTRICT
+      );
+    `);
+
+    const schema = await extractSchema(db);
+
+    expect(schema.relationships.map(r => ({
+      fromTable: r.fromTable,
+      onDelete: r.onDelete,
+    }))).toMatchInlineSnapshot(`
+      [
+        {
+          "fromTable": "AuditLog",
+          "onDelete": "SET NULL",
+        },
+        {
+          "fromTable": "Profile",
+          "onDelete": "RESTRICT",
+        },
+        {
+          "fromTable": "Session",
+          "onDelete": "CASCADE",
+        },
+      ]
+    `);
+  });
 });

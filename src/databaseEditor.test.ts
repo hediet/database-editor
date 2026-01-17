@@ -32,7 +32,7 @@ describe("DatabaseEditor", () => {
 			editor = await DatabaseEditor.fromClient(db);
 
 			const outputPath = path.join(tempDir, "data.json");
-			await editor.dump({ output: outputPath });
+			await editor.dump({ output: outputPath, flat: true });
 
 			const content = JSON.parse(fs.readFileSync(outputPath, "utf-8"));
 			expect(content.User).toMatchInlineSnapshot(`
@@ -40,6 +40,40 @@ describe("DatabaseEditor", () => {
           {
             "id": "u1",
             "name": "Alice",
+          },
+        ]
+      `);
+		});
+
+		test("dumps database to nested JSON file by default", async () => {
+			await db.exec(`
+        CREATE TABLE "User" (id TEXT PRIMARY KEY, name TEXT);
+        CREATE TABLE "Post" (
+          id TEXT PRIMARY KEY, 
+          title TEXT, 
+          user_id TEXT REFERENCES "User"(id) ON DELETE CASCADE
+        );
+        INSERT INTO "User" VALUES ('u1', 'Alice');
+        INSERT INTO "Post" VALUES ('p1', 'Hello', 'u1');
+      `);
+			editor = await DatabaseEditor.fromClient(db);
+
+			const outputPath = path.join(tempDir, "data.json");
+			await editor.dump({ output: outputPath });
+
+			const content = JSON.parse(fs.readFileSync(outputPath, "utf-8"));
+			// Nested format: posts appear under user, without user_id column
+			expect(content.user).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "u1",
+            "name": "Alice",
+            "post": [
+              {
+                "id": "p1",
+                "title": "Hello",
+              },
+            ],
           },
         ]
       `);

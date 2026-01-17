@@ -51,14 +51,22 @@ program
 
 program
 	.command("dump")
-	.description("Export database tables to a JSON file")
+	.description("Export database tables to a JSON file (nested format by default)")
 	.requiredOption("-c, --connection <string>", "PostgreSQL connection string")
 	.requiredOption("-o, --output <file>", "Output JSON file path")
 	.option("-l, --limit <number>", "Maximum rows to export per table", parseInt)
+	.option("--nested-limit <number>", "Maximum nested children per parent", parseInt)
+	.option("--flat", "Use flat format instead of nested")
 	.action(async (options) => {
 		const editor = await DatabaseEditor.connect(options.connection);
 		try {
-			await editor.dump({ output: options.output, limit: options.limit });
+			await editor.dump({
+				output: options.output,
+				connectionString: options.connection,
+				limit: options.limit,
+				nestedLimit: options.nestedLimit,
+				flat: options.flat,
+			});
 			console.log(`Exported to ${options.output}`);
 		} finally {
 			await editor.close();

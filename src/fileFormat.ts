@@ -6,6 +6,7 @@ import { isPartialMarker } from "./model";
  */
 export interface FlatFileMetadata {
 	$schema?: string;
+	$connection?: string;
 	$base?: string;
 }
 
@@ -34,6 +35,9 @@ export function serializeFlatDataset(
 	// Add metadata first (appears at top of file)
 	if (metadata?.$schema) {
 		obj.$schema = metadata.$schema;
+	}
+	if (metadata?.$connection) {
+		obj.$connection = metadata.$connection;
 	}
 	if (metadata?.$base) {
 		obj.$base = metadata.$base;
@@ -70,6 +74,8 @@ export function parseFlatDataset(json: string): {
 	for (const [key, value] of Object.entries(obj)) {
 		if (key === "$schema" && typeof value === "string") {
 			metadata.$schema = value;
+		} else if (key === "$connection" && typeof value === "string") {
+			metadata.$connection = value;
 		} else if (key === "$base" && typeof value === "string") {
 			metadata.$base = value;
 		} else if (Array.isArray(value)) {
