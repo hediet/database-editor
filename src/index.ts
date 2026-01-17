@@ -6,6 +6,7 @@ export type {
   Relationship,
   FlatDataset,
   FlatRow,
+  PartialMarker,
   Change,
   InsertChange,
   UpdateChange,
@@ -17,6 +18,7 @@ export {
   createSchema,
   createFlatDataset,
   flatDatasetToObject,
+  isPartialMarker,
 } from './model';
 
 // Schema extraction
@@ -32,3 +34,17 @@ export { generateSql, orderChangesByDependency } from './sqlGenerator';
 
 // Sync engine
 export { SyncEngine } from './syncEngine';
+
+// Ownership tree
+export type {
+  RelationshipKind,
+  ClassifiedRelationship,
+  OwnershipEdge,
+  OwnershipTree,
+} from './ownershipTree';
+export { buildOwnershipTree } from './ownershipTree';
+
+// Nested format
+export type { NestedRow, RefMarker, ToNestedOptions, NestedResult } from './nested';
+export { toNested, fromNested, isRefMarker } from './nested';
+
