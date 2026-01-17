@@ -1,0 +1,25 @@
+{
+  "name": "database-editor",
+  "version": "2.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "db-editor": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.2.0",
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.16.0",
+    "typescript": "^5.9.0",
+    "vitest": "^2.0.0"
+  },
+  "dependencies": {
+    "commander": "^14.0.0",
+    "pg": "^8.16.0"
+  }
+}
