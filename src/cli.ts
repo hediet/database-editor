@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { DatabaseEditor } from "./databaseEditor";
+import { generateSql } from "./sqlGenerator";
 
 const program = new Command();
 
@@ -28,6 +29,7 @@ program
 	.description("Show changes that would be applied to sync file to database")
 	.requiredOption("-c, --connection <string>", "PostgreSQL connection string")
 	.requiredOption("-f, --file <file>", "JSON file to preview")
+	.option("--sql", "Output SQL statements instead of change summary")
 	.action(async (options) => {
 		const editor = await DatabaseEditor.connect(options.connection);
 		try {
@@ -40,13 +42,35 @@ program
 			for (const change of changeSet.changes) {
 				if (change.type === "insert") {
 					console.log(`  INSERT ${change.table}`);
+					for (const [key, value] of Object.entries(change.row)) {
+						console.log(`    + ${key}: ${JSON.stringify(value)}`);
+					}
 				} else if (change.type === "update") {
 					console.log(`  UPDATE ${change.table} pk=${JSON.stringify(change.primaryKey)}`);
+					for (const key of Object.keys(change.newValues)) {
+						const oldVal = change.oldValues[key];
+						const newVal = change.newValues[key];
+						console.log(`    ${key}: ${JSON.stringify(oldVal)} → ${JSON.stringify(newVal)}`);
+					}
 				} else {
 					console.log(`  DELETE ${change.table} pk=${JSON.stringify(change.primaryKey)}`);
+					for (const [key, value] of Object.entries(change.oldRow)) {
+						console.log(`    - ${key}: ${JSON.stringify(value)}`);
+					}
 				}
 			}
 			console.log(`Total: ${changeSet.changes.length} change(s)`);
+
+			if (options.sql) {
+				console.log("\nSQL statements:");
+				const statements = generateSql(changeSet);
+				for (const stmt of statements) {
+					console.log(`${stmt.sql};`);
+					if (stmt.params.length > 0) {
+						console.log(`  -- params: ${JSON.stringify(stmt.params)}`);
+					}
+				}
+			}
 		} finally {
 			await editor.close();
 		}

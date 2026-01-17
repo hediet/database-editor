@@ -145,9 +145,11 @@ function valuesEqual(a: unknown, b: unknown): boolean {
   if (a === null || b === null) return false;
   if (a === undefined || b === undefined) return false;
 
-  // Handle dates
-  if (a instanceof Date && b instanceof Date) {
-    return a.getTime() === b.getTime();
+  // Handle dates - normalize to ISO strings for comparison
+  const aDate = toDateIfPossible(a);
+  const bDate = toDateIfPossible(b);
+  if (aDate !== null && bDate !== null) {
+    return aDate.getTime() === bDate.getTime();
   }
 
   // Handle objects/arrays (deep equality via JSON)
@@ -156,4 +158,18 @@ function valuesEqual(a: unknown, b: unknown): boolean {
   }
 
   return a === b;
+}
+
+function toDateIfPossible(value: unknown): Date | null {
+  if (value instanceof Date) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    // Check if it's an ISO date string
+    const date = new Date(value);
+    if (!isNaN(date.getTime()) && value.match(/^\d{4}-\d{2}-\d{2}T/)) {
+      return date;
+    }
+  }
+  return null;
 }

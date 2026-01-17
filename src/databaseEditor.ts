@@ -1,14 +1,14 @@
 import { Client } from "pg";
 import * as fs from "fs";
 import * as path from "path";
-import type { Schema, FlatDataset, ChangeSet } from "./model";
+import type { Schema, ChangeSet } from "./model";
 import type { DbClient } from "./schemaExtractor";
 import { extractSchema } from "./schemaExtractor";
 import { SyncEngine } from "./syncEngine";
 import {
-	serializeFlatDataset,
-	parseFlatDataset,
-	type FlatFileMetadata,
+    serializeFlatDataset,
+    parseFlatDataset,
+    type FlatFileMetadata,
 } from "./fileFormat";
 import { generateJsonSchema } from "./jsonSchemaGenerator";
 
