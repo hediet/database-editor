@@ -59,6 +59,14 @@ npm install
 npm run build
 ```
 
+## Demo
+
+See [src/demo.test.ts](src/demo.test.ts) for a complete CI-verified workflow example that demonstrates:
+- Creating a todo-list schema with users, lists, items, and tags
+- Dumping nested JSON with the ownership tree
+- Editing data via object manipulation
+- Previewing the generated SQL statements
+
 ## CLI Commands
 
 ### dump
@@ -260,7 +268,7 @@ All tests use [PGLite](https://github.com/electric-sql/pglite) — PostgreSQL ru
 
 ```bash
 npm run test:run
-# 94 tests passing across 10 test files
+# 95 tests passing across 11 test files
 ```
 
 ## License
