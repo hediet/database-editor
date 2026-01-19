@@ -14,9 +14,10 @@ PostgreSQL ←→ Hierarchical JSON ←→ Edit in VS Code
 
 1. **Extract** database schema and foreign key relationships
 2. **Classify** relationships as "composition" (parent owns child) vs "reference" (lookup)
-3. **Export** data as nested JSON (children embedded under parents)
-4. **Generate** JSON Schema for IntelliSense while editing
-5. **Import** changes back by diffing hierarchical JSON against flat database
+3. **Build** an ownership tree to determine nesting structure
+4. **Export** data as nested JSON (children embedded under parents)
+5. **Generate** JSON Schema for IntelliSense while editing
+6. **Sync** changes back by diffing JSON against the database
 
 ## Example
 
@@ -38,6 +39,7 @@ You edit nested JSON:
 
 ```json
 {
+  "$schema": "./.db-editor/data.schema.json",
   "organizations": [
     {
       "id": "1",
@@ -50,111 +52,215 @@ You edit nested JSON:
 }
 ```
 
-## CLI Commands
+## Installation
 
 ```bash
-# Extract database schema
-database-editor extract -c "postgresql://..." -o database-schema.json
+npm install
+npm run build
+```
 
-# Extract relationships (foreign keys)
-database-editor relationships -c "postgresql://..." -o relationships.json
+## CLI Commands
 
-# Generate Mermaid ER diagram
-database-editor mermaid -i relationships.json -o diagram.mmd
+### dump
 
-# Export all data as nested JSON
-database-editor tojson --all -c "postgresql://..." -o table-data.json
+Export database tables to a JSON file (nested format by default):
 
-# Generate JSON Schema (for VS Code IntelliSense)
-database-editor schema -c "postgresql://..." -o table-data.schema.json
+```bash
+# Dump all tables as nested JSON
+db-editor dump -c "postgresql://..." -o data.json
 
-# Import changes back (compares JSON against DB, generates SQL)
-database-editor import -i table-data.json -c "postgresql://..." --dry-run
+# Dump with row limits
+db-editor dump -c "postgresql://..." -o data.json --limit 100
+
+# Dump with nested limits (max children per parent)
+db-editor dump -c "postgresql://..." -o data.json --nested-limit 20
+
+# Dump as flat JSON (table-per-key)
+db-editor dump -c "postgresql://..." -o data.json --flat
+```
+
+The dump command creates three files:
+- `data.json` — Main file you edit
+- `.db-editor/data.base.json` — Base snapshot for diffing
+- `.db-editor/data.schema.json` — JSON Schema for autocomplete
+
+### preview
+
+Show changes that would be applied without executing them:
+
+```bash
+# Preview changes
+db-editor preview -c "postgresql://..." -f data.json
+
+# Preview with SQL output
+db-editor preview -c "postgresql://..." -f data.json --sql
+```
+
+### sync
+
+Apply changes from file to database (interactive by default):
+
+```bash
+# Interactive sync (shows diff, asks for confirmation)
+db-editor sync -c "postgresql://..." -f data.json
+
+# Non-interactive sync
+db-editor sync -c "postgresql://..." -f data.json --yes
+```
+
+### reset
+
+Reset database to match file exactly:
+
+```bash
+# Interactive reset
+db-editor reset -c "postgresql://..." -f data.json
+
+# Non-interactive reset
+db-editor reset -c "postgresql://..." -f data.json --yes
+```
+
+### mermaid
+
+Export database schema as a Mermaid ER diagram:
+
+```bash
+# Output to stdout
+db-editor mermaid -c "postgresql://..."
+
+# Output to file
+db-editor mermaid -c "postgresql://..." -o diagram.mmd
+
+# Hide column details
+db-editor mermaid -c "postgresql://..." --no-columns
 ```
 
 ## Relationship Classification
 
-Foreign keys are classified based on heuristics:
+Foreign keys are classified based on `ON DELETE` behavior:
 
-| Heuristic | Classification |
-|-----------|----------------|
-| `ON DELETE CASCADE` | **composedBy** (parent owns child) |
-| Column name contains "parent", "owner" | **composedBy** |
-| Self-referencing FK | **reference** |
-| Everything else | **reference** |
+| ON DELETE Action | Classification |
+|------------------|----------------|
+| `CASCADE` | **composition** (parent owns child) |
+| `SET NULL` | reference |
+| `RESTRICT` | reference |
+| `NO ACTION` | reference |
+| Self-referencing | reference (always) |
 
-**composedBy** relationships get nested in JSON. **reference** relationships keep the foreign key column.
+**Composition** relationships get nested in JSON (FK columns removed). **Reference** relationships keep the foreign key column inline.
 
-## Known Limitations / Areas for Rewrite
+## Ownership Tree
 
-### 1. Hierarchical vs Flat Data Complexity
+For tables with multiple incoming compositions (multi-parent), exactly one is designated as **dominant**. The dominant relationship determines where the child appears nested in the JSON tree.
 
-The core challenge: databases are flat (normalized), but we want hierarchical JSON.
+Dominance is selected by:
+1. Shortest path from a root table
+2. Single-column FK preferred over composite
+3. Alphabetical (deterministic fallback)
 
-**Current issues:**
+## File Formats
 
-- **Multi-parent compositions**: A child table can be "composed by" multiple parents. Example: `LocalizedChapter` is composed by both `Chapter` and `ProjectLanguage`. The current code adds it as a child to both parents, leading to duplication.
+### Nested Format (default)
 
-- **Flattening on import**: When importing JSON, the code flattens the hierarchy back to rows. Reconstructing foreign key values from parent context is fragile.
+```json
+{
+  "$schema": "./.db-editor/data.schema.json",
+  "organizations": [
+    {
+      "id": "org-1",
+      "name": "Acme",
+      "projects": [
+        {
+          "id": "proj-1",
+          "name": "Alpha"
+        }
+      ]
+    }
+  ]
+}
+```
 
-- **Property name inference**: Converting `LocalizedChapter` → `localizedChapters` has edge cases and is duplicated across files.
+### Flat Format
 
-### 2. Incomplete Implementations
+```json
+{
+  "Organization": [
+    { "id": "org-1", "name": "Acme" }
+  ],
+  "Project": [
+    { "id": "proj-1", "name": "Alpha", "organizationId": "org-1" }
+  ]
+}
+```
 
-- `findRelationshipForChild()` in [exportToJson.ts](src/exportToJson.ts) always returns `undefined`
-- `buildChildData()` in [generateJsonSchema.ts](src/generateJsonSchema.ts) has placeholder logic
-- Recursive export in [importTableData.ts](src/importTableData.ts) doesn't properly handle grandchildren
+### Special Markers
 
-### 3. Missing Features
+**Partial marker** — Indicates truncated lists (from `--limit`):
+```json
+{ "$partial": true, "skipped": 1000 }
+```
 
-- No ordering/sorting of exported rows
-- No handling of circular references
-- Limited WHERE clause support
-- No transaction batching for large imports
-- Error messages could be more helpful
+**Reference marker** — Collapsed child (FK only, not expanded):
+```json
+{ "$ref": true, "id": "proj-1" }
+```
 
-### 4. Code Quality
-
-- Duplicate `getTablePropertyName()` implementations across files
-- No tests
-- `any` types in several places
-- Async `_init` patterns instead of factory methods
-
-## Architecture Overview
+## Architecture
 
 ```
-┌─────────────────────┐
-│  extractDbSchema    │  → schema (tables, columns, enums)
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│ extractRelationships│  → relationships (FK → composition or reference)
-└──────────┬──────────┘
-           │
-     ┌─────┴─────┐
-     ▼           ▼
-┌─────────┐  ┌────────────────┐
-│ mermaid │  │generateJsonSchema│  → JSON Schema
-└─────────┘  └───────┬────────┘
-                     │
-                     ▼
-             ┌───────────────┐
-             │ exportToJson  │  → Nested JSON data
-             └───────┬───────┘
-                     │
-                     ▼
-             ┌───────────────┐
-             │importTableData│  → Flatten, diff, generate SQL
-             └───────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                         CLI Layer                           │
+│  (commander, argument parsing, output formatting)           │
+└─────────────────────────────────┬───────────────────────────┘
+                                  │
+┌─────────────────────────────────▼───────────────────────────┐
+│                     DatabaseEditor                          │
+│  (orchestrates dump, preview, sync, reset operations)       │
+└─────────────────────────────────┬───────────────────────────┘
+                                  │
+   ┌──────────────┬───────────────┼───────────────┬───────────┐
+   ▼              ▼               ▼               ▼           ▼
+┌──────────┐ ┌──────────┐ ┌────────────┐ ┌───────────┐ ┌──────────┐
+│Schema    │ │Ownership │ │ Nested     │ │   Diff    │ │   SQL    │
+│Extractor │ │Tree      │ │ Serializer │ │ Algorithm │ │Generator │
+└──────────┘ └──────────┘ └────────────┘ └───────────┘ └──────────┘
+                                  │
+┌─────────────────────────────────▼───────────────────────────┐
+│                      SyncEngine                             │
+│  (fetch, diff, apply changes in transaction)                │
+└─────────────────────────────────────────────────────────────┘
 ```
+
+### Module Overview
+
+| Module | Description |
+|--------|-------------|
+| [schemaExtractor.ts](src/schemaExtractor.ts) | Extracts tables, columns, FKs from PostgreSQL |
+| [ownershipTree.ts](src/ownershipTree.ts) | Builds ownership tree, classifies relationships |
+| [nested.ts](src/nested.ts) | Converts between flat and nested representations |
+| [diff.ts](src/diff.ts) | Diffs two flat datasets (insert/update/delete) |
+| [sqlGenerator.ts](src/sqlGenerator.ts) | Generates SQL from change sets |
+| [syncEngine.ts](src/syncEngine.ts) | Orchestrates sync with transaction support |
+| [jsonSchemaGenerator.ts](src/jsonSchemaGenerator.ts) | Generates JSON Schema for autocomplete |
+| [mermaidGenerator.ts](src/mermaidGenerator.ts) | Generates Mermaid ER diagrams |
+| [databaseEditor.ts](src/databaseEditor.ts) | High-level API (dump, preview, sync, reset) |
 
 ## Development
 
 ```bash
 npm install
-npm run build    # Compile TypeScript
-npm run dev      # Run with tsx (no build needed)
+npm run build     # Compile TypeScript
+npm test          # Run tests (watch mode)
+npm run test:run  # Run tests once
+```
+
+### Testing
+
+All tests use [PGLite](https://github.com/electric-sql/pglite) — PostgreSQL running in-process via WebAssembly. No Docker or external database needed.
+
+```bash
+npm run test:run
+# 94 tests passing across 10 test files
 ```
 
 ## License
