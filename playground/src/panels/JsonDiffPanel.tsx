@@ -2,7 +2,7 @@ import { derived, autorun } from "@vscode/observables";
 import { viewWithModel, ViewModel, inject, prop } from "@vscode/observables-react";
 import { DiffEditor, Monaco } from "@monaco-editor/react";
 import { editor } from "monaco-editor";
-import { SqlStatement } from "database-editor";
+import { SqlStatement } from "json-database-editor";
 import { PlaygroundViewModelKey, ViewMode } from "../PlaygroundViewModel";
 import { styles } from "../styles";
 

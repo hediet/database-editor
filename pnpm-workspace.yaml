@@ -1,7 +1,8 @@
 packages:
-  - playground
-  - external/vscode-observables/observables
-  - external/vscode-observables/observables-react
+    - .
+    - playground
+    - external/vscode-observables/observables
+    - external/vscode-observables/observables-react
 
 onlyBuiltDependencies:
-  - esbuild
+    - esbuild

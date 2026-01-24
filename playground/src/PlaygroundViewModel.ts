@@ -24,7 +24,7 @@ import {
     NestedResult,
     OwnershipTree,
     JsonSchema,
-} from "database-editor";
+} from "json-database-editor";
 import { AsyncLzmaCompressor } from "./utils/asyncLzmaCompressor";
 import { getLocationValue, setLocation } from "./utils/HistoryController";
 

@@ -129,12 +129,12 @@ importers:
       base64-js:
         specifier: ^1.5.1
         version: 1.5.1
-      database-editor:
-        specifier: workspace:*
-        version: link:..
       golden-layout:
         specifier: ^2.6.0
         version: 2.6.0
+      json-database-editor:
+        specifier: workspace:*
+        version: link:..
       lzma:
         specifier: ^2.3.2
         version: 2.3.2

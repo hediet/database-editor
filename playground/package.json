@@ -14,7 +14,7 @@
     "@vscode/observables": "workspace:*",
     "@vscode/observables-react": "workspace:*",
     "base64-js": "^1.5.1",
-    "database-editor": "workspace:*",
+    "json-database-editor": "workspace:*",
     "golden-layout": "^2.6.0",
     "lzma": "^2.3.2",
     "mermaid": "^11.12.2",
