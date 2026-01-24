@@ -30,7 +30,7 @@ export { diff } from './diff';
 
 // SQL generation
 export type { SqlStatement } from './sqlGenerator';
-export { generateSql, orderChangesByDependency } from './sqlGenerator';
+export { generateSql, orderChangesByDependency, escapeIdentifier } from './sqlGenerator';
 
 // Sync engine
 export { SyncEngine } from './syncEngine';

@@ -6,6 +6,14 @@ export interface SqlStatement {
 }
 
 /**
+ * Escape a PostgreSQL identifier (table or column name).
+ * Doubles any embedded double-quotes to prevent SQL injection.
+ */
+export function escapeIdentifier(name: string): string {
+  return `"${name.replace(/"/g, '""')}"`;
+}
+
+/**
  * Generate SQL statements from a ChangeSet.
  */
 export function generateSql(changes: ChangeSet): SqlStatement[] {
@@ -26,7 +34,7 @@ function generateInsert(table: string, row: FlatRow): SqlStatement {
   const placeholders = columns.map((_, i) => `$${i + 1}`);
   const params = columns.map(col => row[col]);
 
-  const sql = `INSERT INTO "${table}" (${columns.map(c => `"${c}"`).join(', ')}) VALUES (${placeholders.join(', ')});`;
+  const sql = `INSERT INTO ${escapeIdentifier(table)} (${columns.map(c => escapeIdentifier(c)).join(', ')}) VALUES (${placeholders.join(', ')});`;
 
   return { sql, params };
 }
@@ -40,16 +48,16 @@ function generateUpdate(table: string, primaryKey: FlatRow, newValues: FlatRow):
   // SET clause
   const setClause = setCols.map((col, i) => {
     params.push(newValues[col]);
-    return `"${col}" = $${i + 1}`;
+    return `${escapeIdentifier(col)} = $${i + 1}`;
   }).join(', ');
 
   // WHERE clause
   const whereClause = pkCols.map((col, i) => {
     params.push(primaryKey[col]);
-    return `"${col}" = $${setCols.length + i + 1}`;
+    return `${escapeIdentifier(col)} = $${setCols.length + i + 1}`;
   }).join(' AND ');
 
-  const sql = `UPDATE "${table}" SET ${setClause} WHERE ${whereClause};`;
+  const sql = `UPDATE ${escapeIdentifier(table)} SET ${setClause} WHERE ${whereClause};`;
 
   return { sql, params };
 }
@@ -58,8 +66,8 @@ function generateDelete(table: string, primaryKey: FlatRow): SqlStatement {
   const pkCols = Object.keys(primaryKey);
   const params = pkCols.map(col => primaryKey[col]);
 
-  const whereClause = pkCols.map((col, i) => `"${col}" = $${i + 1}`).join(' AND ');
-  const sql = `DELETE FROM "${table}" WHERE ${whereClause};`;
+  const whereClause = pkCols.map((col, i) => `${escapeIdentifier(col)} = $${i + 1}`).join(' AND ');
+  const sql = `DELETE FROM ${escapeIdentifier(table)} WHERE ${whereClause};`;
 
   return { sql, params };
 }

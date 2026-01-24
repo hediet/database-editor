@@ -1,7 +1,7 @@
 import type { Schema, FlatDataset, FlatRow, ChangeSet } from './model';
 import type { DbClient } from './schemaExtractor';
 import { diff } from './diff';
-import { generateSql, orderChangesByDependency } from './sqlGenerator';
+import { generateSql, orderChangesByDependency, escapeIdentifier } from './sqlGenerator';
 
 export interface FetchOptions {
   /** Maximum rows to fetch per table. Undefined means no limit. */
@@ -21,7 +21,7 @@ export class SyncEngine {
   constructor(
     private readonly _client: DbClient,
     private readonly _schema: Schema
-  ) {}
+  ) { }
 
   /**
    * Fetch current data from all tables in the schema.
@@ -33,28 +33,29 @@ export class SyncEngine {
     for (const tableName of this._schema.tables.keys()) {
       const table = this._schema.tables.get(tableName)!;
       const pk = table.primaryKey;
-      const orderBy = pk.length > 0 ? `ORDER BY ${pk.map(c => `"${c}"`).join(', ')}` : '';
-      
+      const escapedTable = escapeIdentifier(tableName);
+      const orderBy = pk.length > 0 ? `ORDER BY ${pk.map(c => escapeIdentifier(c)).join(', ')}` : '';
+
       if (options.limit !== undefined) {
         // Get total count first
         const countResult = await this._client.query<{ count: string }>(
-          `SELECT COUNT(*) as count FROM "${tableName}"`
+          `SELECT COUNT(*) as count FROM ${escapedTable}`
         );
         const totalCount = parseInt(countResult.rows[0].count, 10);
-        
+
         // Fetch limited rows
         const result = await this._client.query<FlatRow>(
-          `SELECT * FROM "${tableName}" ${orderBy} LIMIT ${options.limit}`
+          `SELECT * FROM ${escapedTable} ${orderBy} LIMIT ${options.limit}`
         );
         tables.set(tableName, result.rows);
-        
+
         // Track if truncated
         if (totalCount > options.limit) {
           truncated.set(tableName, totalCount - options.limit);
         }
       } else {
         const result = await this._client.query<FlatRow>(
-          `SELECT * FROM "${tableName}" ${orderBy}`
+          `SELECT * FROM ${escapedTable} ${orderBy}`
         );
         tables.set(tableName, result.rows);
       }
