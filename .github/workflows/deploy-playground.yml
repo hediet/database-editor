@@ -36,6 +36,9 @@ jobs:
             - name: Install dependencies
               run: pnpm install
 
+            - name: Build npm library
+              run: pnpm run build
+
             - name: Build playground
               working-directory: ./playground
               run: pnpm run build
