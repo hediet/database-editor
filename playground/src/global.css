@@ -1,0 +1,99 @@
+/* Star Button Tooltip */
+.star-button-wrapper:hover .tooltip {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.star-button:hover {
+    background-color: #4a4a4a !important;
+}
+
+.tooltip-link:hover {
+    text-decoration: underline;
+}
+
+/* Golden Layout Base Styles */
+.lm_goldenlayout {
+    background: #1e1e1e;
+}
+
+.lm_content {
+    background: #1e1e1e;
+    overflow: hidden !important;
+}
+
+/* Ensure proper height for item containers */
+.lm_item_container {
+    overflow: hidden !important;
+}
+
+.lm_stack>.lm_items {
+    overflow: hidden !important;
+}
+
+.lm_header {
+    background: #252526 !important;
+}
+
+.lm_tabs {
+    padding-left: 4px;
+}
+
+.lm_tab {
+    background: #2d2d30 !important;
+    color: #969696 !important;
+    border: none !important;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 12px !important;
+    padding: 4px 12px !important;
+    margin-right: 1px !important;
+    border-radius: 0 !important;
+}
+
+.lm_tab.lm_active {
+    background: #1e1e1e !important;
+    color: #fff !important;
+    border-bottom: 2px solid #0078d4 !important;
+}
+
+.lm_tab:hover {
+    background: #3e3e42 !important;
+}
+
+.lm_close_tab {
+    display: none !important;
+}
+
+.lm_splitter {
+    background: #333 !important;
+}
+
+.lm_splitter:hover {
+    background: #0078d4 !important;
+}
+
+.lm_controls {
+    display: none !important;
+}
+
+.lm_maximised .lm_header {
+    background: #252526 !important;
+}
+
+.lm_dragProxy .lm_header {
+    background: #252526 !important;
+}
+
+.lm_dragProxy .lm_tab {
+    background: #0078d4 !important;
+    color: #fff !important;
+}
+
+.lm_dropTargetIndicator {
+    background: rgba(0, 120, 212, 0.3) !important;
+    border: 2px solid #0078d4 !important;
+}
+
+.lm_title {
+    color: inherit !important;
+}

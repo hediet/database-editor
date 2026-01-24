@@ -402,21 +402,21 @@ describe("Demo: Complete Workflow", () => {
 			    "params": [
 			      "tag-urgent",
 			    ],
-			    "sql": "DELETE FROM "Tag" WHERE "id" = $1",
+			    "sql": "DELETE FROM "Tag" WHERE "id" = $1;",
 			  },
 			  {
 			    "params": [
 			      true,
 			      "item-2",
 			    ],
-			    "sql": "UPDATE "TodoItem" SET "completed" = $1 WHERE "id" = $2",
+			    "sql": "UPDATE "TodoItem" SET "completed" = $1 WHERE "id" = $2;",
 			  },
 			  {
 			    "params": [
 			      "Personal Goals",
 			      "list-2",
 			    ],
-			    "sql": "UPDATE "TodoList" SET "title" = $1 WHERE "id" = $2",
+			    "sql": "UPDATE "TodoList" SET "title" = $1 WHERE "id" = $2;",
 			  },
 			  {
 			    "params": [
@@ -426,7 +426,7 @@ describe("Demo: Complete Workflow", () => {
 			      "2026-01-25",
 			      "list-3",
 			    ],
-			    "sql": "INSERT INTO "TodoItem" ("id", "title", "completed", "due_date", "list_id") VALUES ($1, $2, $3, $4, $5)",
+			    "sql": "INSERT INTO "TodoItem" ("id", "title", "completed", "due_date", "list_id") VALUES ($1, $2, $3, $4, $5);",
 			  },
 			]
 		`);

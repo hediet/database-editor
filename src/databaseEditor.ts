@@ -6,9 +6,9 @@ import type { DbClient } from "./schemaExtractor";
 import { extractSchema } from "./schemaExtractor";
 import { SyncEngine } from "./syncEngine";
 import {
-    serializeFlatDataset,
-    parseFlatDataset,
-    type FlatFileMetadata,
+	serializeFlatDataset,
+	parseFlatDataset,
+	type FlatFileMetadata,
 } from "./fileFormat";
 import { generateJsonSchema, generateNestedJsonSchema } from "./jsonSchemaGenerator";
 import { buildOwnershipTree } from "./ownershipTree";
@@ -43,7 +43,7 @@ export class DatabaseEditor {
 		private readonly _client: DbClient,
 		private readonly _schema: Schema,
 		private readonly _engine: SyncEngine
-	) {}
+	) { }
 
 	/**
 	 * Create a DatabaseEditor connected to a PostgreSQL database.
@@ -146,10 +146,18 @@ export class DatabaseEditor {
 	/**
 	 * Preview changes that would be made to sync file to database.
 	 * This is a dry-run that doesn't modify anything.
+	 * @throws Error if the file contains partial/truncated data
 	 */
 	async preview(inputPath: string): Promise<ChangeSet> {
 		const json = fs.readFileSync(inputPath, "utf-8");
-		const { dataset } = parseFlatDataset(json);
+		const { dataset, isPartial } = parseFlatDataset(json);
+
+		if (isPartial) {
+			throw new Error(
+				"Cannot sync partial data. The file was exported with --limit and contains truncated tables. " +
+				"Re-export without --limit to sync all data."
+			);
+		}
 
 		return this._engine.preview(dataset);
 	}
@@ -157,10 +165,18 @@ export class DatabaseEditor {
 	/**
 	 * Apply changes to make database match the file (reset --hard semantics).
 	 * Uses two-way diff: file is desired state, DB rows not in file are deleted.
+	 * @throws Error if the file contains partial/truncated data
 	 */
 	async reset(inputPath: string): Promise<ChangeSet> {
 		const json = fs.readFileSync(inputPath, "utf-8");
-		const { dataset, metadata } = parseFlatDataset(json);
+		const { dataset, metadata, isPartial } = parseFlatDataset(json);
+
+		if (isPartial) {
+			throw new Error(
+				"Cannot sync partial data. The file was exported with --limit and contains truncated tables. " +
+				"Re-export without --limit to sync all data."
+			);
+		}
 
 		const changes = await this._engine.apply(dataset);
 

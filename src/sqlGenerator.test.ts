@@ -22,7 +22,7 @@ describe('generateSql', () => {
             "Alice",
             "alice@example.com",
           ],
-          "sql": "INSERT INTO "User" ("id", "name", "email") VALUES ($1, $2, $3)",
+          "sql": "INSERT INTO "User" ("id", "name", "email") VALUES ($1, $2, $3);",
         },
       ]
     `);
@@ -49,7 +49,7 @@ describe('generateSql', () => {
             "new@example.com",
             "user-1",
           ],
-          "sql": "UPDATE "User" SET "name" = $1, "email" = $2 WHERE "id" = $3",
+          "sql": "UPDATE "User" SET "name" = $1, "email" = $2 WHERE "id" = $3;",
         },
       ]
     `);
@@ -73,7 +73,7 @@ describe('generateSql', () => {
           "params": [
             "user-1",
           ],
-          "sql": "DELETE FROM "User" WHERE "id" = $1",
+          "sql": "DELETE FROM "User" WHERE "id" = $1;",
         },
       ]
     `);
@@ -100,7 +100,7 @@ describe('generateSql', () => {
             "p1",
             "en",
           ],
-          "sql": "UPDATE "ProjectLanguage" SET "enabled" = $1 WHERE "projectId" = $2 AND "languageId" = $3",
+          "sql": "UPDATE "ProjectLanguage" SET "enabled" = $1 WHERE "projectId" = $2 AND "languageId" = $3;",
         },
       ]
     `);
@@ -125,7 +125,7 @@ describe('generateSql', () => {
             "p1",
             "en",
           ],
-          "sql": "DELETE FROM "ProjectLanguage" WHERE "projectId" = $1 AND "languageId" = $2",
+          "sql": "DELETE FROM "ProjectLanguage" WHERE "projectId" = $1 AND "languageId" = $2;",
         },
       ]
     `);
@@ -149,7 +149,7 @@ describe('generateSql', () => {
             "user-1",
             null,
           ],
-          "sql": "INSERT INTO "User" ("id", "name") VALUES ($1, $2)",
+          "sql": "INSERT INTO "User" ("id", "name") VALUES ($1, $2);",
         },
       ]
     `);

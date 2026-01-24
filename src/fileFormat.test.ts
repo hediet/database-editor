@@ -193,6 +193,32 @@ describe("fileFormat", () => {
 			`);
 		});
 
+		test("returns isPartial: true when file contains partial marker", () => {
+			const json = JSON.stringify({
+				User: [
+					{ id: "u1", name: "Alice" },
+					{ $partial: true, skipped: 100 },
+				],
+			});
+
+			const { isPartial } = parseFlatDataset(json);
+
+			expect(isPartial).toBe(true);
+		});
+
+		test("returns isPartial: false when file has no partial markers", () => {
+			const json = JSON.stringify({
+				User: [
+					{ id: "u1", name: "Alice" },
+					{ id: "u2", name: "Bob" },
+				],
+			});
+
+			const { isPartial } = parseFlatDataset(json);
+
+			expect(isPartial).toBe(false);
+		});
+
 		test("does not add marker when truncated count is 0", async () => {
 			await db.exec(`CREATE TABLE "User" (id TEXT PRIMARY KEY)`);
 

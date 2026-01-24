@@ -9,6 +9,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.2.17",
+    "@monaco-editor/react": "^4.7.0",
+    "@vscode/observables": "workspace:*",
+    "@vscode/observables-react": "workspace:*",
+    "base64-js": "^1.5.1",
+    "database-editor": "workspace:*",
+    "golden-layout": "^2.6.0",
+    "lzma": "^2.3.2",
+    "mermaid": "^11.12.2",
+    "messagepack": "^1.1.12",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
@@ -16,6 +26,7 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.3",
+    "monaco-editor": "^0.55.1",
     "typescript": "^5.6.3",
     "vite": "^6.0.1"
   }

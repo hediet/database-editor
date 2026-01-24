@@ -23,19 +23,21 @@ export function generateMermaid(schema: Schema, options: MermaidOptions = {}): s
 	// Generate table definitions
 	for (const [tableName, table] of schema.tables) {
 		if (showColumns) {
-			lines.push(`    ${escapeMermaidId(tableName)} {`);
+			lines.push(`    ${escapeEntityName(tableName)} {`);
 			for (const column of table.columns) {
-				const pkMarker = table.primaryKey.includes(column.name) ? " PK" : "";
-				const fkMarker = isForeignKey(column.name, tableName, schema) ? " FK" : "";
+				const isPK = table.primaryKey.includes(column.name);
+				const isFK = isForeignKey(column.name, tableName, schema);
+				// Mermaid supports comma-separated keys like "PK,FK" but not "PK FK"
+				const keyMarker = isPK && isFK ? " PK,FK" : isPK ? " PK" : isFK ? " FK" : "";
 				const nullComment = column.isNullable ? ' "nullable"' : "";
 				lines.push(
-					`        ${mapPgTypeToMermaid(column.type)} ${escapeMermaidId(column.name)}${pkMarker}${fkMarker}${nullComment}`
+					`        ${mapPgTypeToMermaid(column.type)} ${escapeAttributeName(column.name)}${keyMarker}${nullComment}`
 				);
 			}
 			lines.push("    }");
 		} else {
 			// Just declare the table exists
-			lines.push(`    ${escapeMermaidId(tableName)} {`);
+			lines.push(`    ${escapeEntityName(tableName)} {`);
 			lines.push("    }");
 		}
 	}
@@ -69,7 +71,7 @@ export function generateMermaid(schema: Schema, options: MermaidOptions = {}): s
 		// ||--o{ means: Entity1 has exactly one, Entity2 has zero or more
 		// toTable (referenced) has exactly one (||), fromTable (FK holder) has many (o{)
 		lines.push(
-			`    ${escapeMermaidId(rel.toTable)} ||${lineStyle}o{ ${escapeMermaidId(rel.fromTable)} : "${label}"`
+			`    ${escapeEntityName(rel.toTable)} ||${lineStyle}o{ ${escapeEntityName(rel.fromTable)} : "${label}"`
 		);
 	}
 
@@ -82,13 +84,25 @@ function isForeignKey(columnName: string, tableName: string, schema: Schema): bo
 	);
 }
 
-function escapeMermaidId(name: string): string {
-	// Mermaid IDs can't have certain characters
-	// If the name contains special characters, wrap in quotes
+/**
+ * Escape entity names (table names) for Mermaid ER diagrams.
+ * Entity names can be quoted if they contain special characters.
+ */
+function escapeEntityName(name: string): string {
 	if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) {
 		return name;
 	}
 	return `"${name.replace(/"/g, '\\"')}"`;
+}
+
+/**
+ * Escape attribute names (column names) for Mermaid ER diagrams.
+ * Attributes cannot be quoted (quotes mean comments in Mermaid ER).
+ * Convert invalid characters to underscores.
+ */
+function escapeAttributeName(name: string): string {
+	// Replace any character that's not alphanumeric or underscore
+	return name.replace(/[^a-zA-Z0-9_]/g, "_");
 }
 
 function mapPgTypeToMermaid(pgType: string): string {

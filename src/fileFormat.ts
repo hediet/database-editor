@@ -61,15 +61,18 @@ export function serializeFlatDataset(
 /**
  * Parse a JSON string into a FlatDataset and metadata.
  * PartialMarkers are filtered out - they indicate truncated data.
+ * Returns `isPartial: true` if any table had a $partial marker.
  */
 export function parseFlatDataset(json: string): {
 	dataset: FlatDataset;
 	metadata: FlatFileMetadata;
+	isPartial: boolean;
 } {
 	const obj = JSON.parse(json) as FlatFileFormat;
 
 	const metadata: FlatFileMetadata = {};
 	const tables = new Map<string, FlatRow[]>();
+	let isPartial = false;
 
 	for (const [key, value] of Object.entries(obj)) {
 		if (key === "$schema" && typeof value === "string") {
@@ -79,8 +82,15 @@ export function parseFlatDataset(json: string): {
 		} else if (key === "$base" && typeof value === "string") {
 			metadata.$base = value;
 		} else if (Array.isArray(value)) {
-			// Filter out any PartialMarker entries
-			const rows = value.filter((row): row is FlatRow => !isPartialMarker(row));
+			// Check for and filter out any PartialMarker entries
+			const rows: FlatRow[] = [];
+			for (const row of value) {
+				if (isPartialMarker(row)) {
+					isPartial = true;
+				} else {
+					rows.push(row);
+				}
+			}
 			tables.set(key, rows);
 		}
 	}
@@ -88,5 +98,6 @@ export function parseFlatDataset(json: string): {
 	return {
 		dataset: { tables },
 		metadata,
+		isPartial,
 	};
 }

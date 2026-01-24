@@ -48,7 +48,7 @@ function printChangeSet(changeSet: { changes: readonly import("./model").Change[
 const program = new Command();
 
 program
-	.name("db-editor")
+	.name("json-db-editor")
 	.description("Edit PostgreSQL database data as JSON files")
 	.version("2.0.0");
 
