@@ -1,4 +1,4 @@
-import type { Schema, FlatDataset, FlatRow, ChangeSet, Change } from './model';
+import type { Schema, FlatDataset, FlatRow, ChangeSet, Change } from './model.ts';
 
 /**
  * Compute the diff between current database state and desired state.
@@ -45,7 +45,7 @@ function diffTable(
   // Find updates and deletes
   for (const [pkKey, currentRow] of currentByPk) {
     const desiredRow = desiredByPk.get(pkKey);
-    
+
     if (desiredRow === undefined) {
       // Row deleted
       changes.push({
@@ -60,7 +60,7 @@ function diffTable(
       if (changedColumns.length > 0) {
         const oldValues: Record<string, unknown> = {};
         const newValues: Record<string, unknown> = {};
-        
+
         for (const col of changedColumns) {
           oldValues[col] = currentRow[col];
           newValues[col] = desiredRow[col];
@@ -96,12 +96,12 @@ function indexByPrimaryKey(
   primaryKey: readonly string[]
 ): Map<string, FlatRow> {
   const index = new Map<string, FlatRow>();
-  
+
   for (const row of rows) {
     const key = primaryKey.map(col => JSON.stringify(row[col])).join('|');
     index.set(key, row);
   }
-  
+
   return index;
 }
 

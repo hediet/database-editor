@@ -1,5 +1,5 @@
-import type { Schema, Table, Column } from "./model";
-import type { OwnershipTree } from "./ownershipTree";
+import type { Schema, Table, Column } from "./model.ts";
+import type { OwnershipTree } from "./ownershipTree.ts";
 
 export interface JsonSchema {
 	readonly $schema: string;
@@ -197,7 +197,6 @@ export function generateNestedJsonSchema(
 
 	const properties: Record<string, unknown> = {
 		$schema: { type: "string" },
-		$connection: { type: "string" },
 		$base: { type: "string" },
 	};
 

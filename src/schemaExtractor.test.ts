@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
-import { extractSchema } from './schemaExtractor';
+import { extractSchema } from './schemaExtractor.ts';
 
 describe('extractSchema', () => {
   let db: PGlite;
@@ -184,7 +184,7 @@ describe('extractSchema', () => {
     await db.exec(`CREATE TABLE "User" (id TEXT PRIMARY KEY)`);
 
     const schema = await extractSchema(db);
-    
+
     // Should not include pg_* tables or information_schema
     const tableNames = [...schema.tables.keys()];
     expect(tableNames).toEqual(['User']);

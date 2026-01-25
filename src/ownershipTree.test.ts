@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
-import { extractSchema } from "./schemaExtractor";
-import { buildOwnershipTree } from "./ownershipTree";
+import { extractSchema } from "./schemaExtractor.ts";
+import { buildOwnershipTree } from "./ownershipTree.ts";
 
 describe("ownershipTree", () => {
 	let db: PGlite;

@@ -1,6 +1,6 @@
-import type { FlatDataset, FlatRow, PartialMarker, Schema } from "./model";
-import { isPartialMarker } from "./model";
-import type { OwnershipTree, OwnershipEdge } from "./ownershipTree";
+import type { FlatDataset, FlatRow, PartialMarker, Schema } from "./model.ts";
+import { isPartialMarker } from "./model.ts";
+import type { OwnershipTree, OwnershipEdge } from "./ownershipTree.ts";
 
 // === Nested Data Types ===
 
@@ -70,7 +70,7 @@ export function toNested(
 		// Apply limit if specified
 		const limit = options.limit;
 		const limitedRows = limit !== undefined ? rows.slice(0, limit) : rows;
-		
+
 		for (const row of limitedRows) {
 			nestedRows.push(nestRow(row, rootTable, schema, tree, rowIndex, options));
 		}
@@ -164,7 +164,7 @@ export function fromNested(
 		for (const row of rows) {
 			if (isPartialMarker(row)) continue; // Skip partial markers
 			if (isRefMarker(row)) continue; // Refs at root level are unusual, skip
-			
+
 			flattenRow(row, rootTable, undefined, schema, tree, tables);
 		}
 	}

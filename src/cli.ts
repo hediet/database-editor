@@ -1,10 +1,11 @@
 import { Command } from "commander";
 import * as readline from "readline";
 import * as fs from "fs";
-import { DatabaseEditor } from "./databaseEditor";
-import { generateSql } from "./sqlGenerator";
-import { generateMermaid } from "./mermaidGenerator";
-import { buildOwnershipTree } from "./ownershipTree";
+import { DatabaseEditor } from "./databaseEditor.ts";
+import { generateSql } from "./sqlGenerator.ts";
+import { generateMermaid } from "./mermaidGenerator.ts";
+import { buildOwnershipTree } from "./ownershipTree.ts";
+import { Change } from "./model.ts";
 
 async function confirm(message: string): Promise<boolean> {
 	const rl = readline.createInterface({
@@ -20,7 +21,7 @@ async function confirm(message: string): Promise<boolean> {
 	});
 }
 
-function printChangeSet(changeSet: { changes: readonly import("./model").Change[] }): void {
+function printChangeSet(changeSet: { changes: Change[] }): void {
 	console.log("Changes to apply:");
 	for (const change of changeSet.changes) {
 		if (change.type === "insert") {
@@ -65,7 +66,6 @@ program
 		try {
 			await editor.dump({
 				output: options.output,
-				connectionString: options.connection,
 				limit: options.limit,
 				nestedLimit: options.nestedLimit,
 				flat: options.flat,
@@ -109,7 +109,7 @@ program
 
 program
 	.command("sync")
-	.description("Apply changes from file to database (interactive by default)")
+	.description("Apply your edits to the database using three-way merge (compares base vs edited)")
 	.requiredOption("-c, --connection <string>", "PostgreSQL connection string")
 	.requiredOption("-f, --file <file>", "JSON file to sync")
 	.option("-y, --yes", "Skip confirmation prompt")
@@ -132,7 +132,7 @@ program
 				}
 			}
 
-			await editor.reset(options.file);
+			await editor.sync(options.file);
 			console.log(`Applied ${changeSet.changes.length} change(s).`);
 		} finally {
 			await editor.close();
@@ -141,20 +141,23 @@ program
 
 program
 	.command("reset")
-	.description("Reset database to match file exactly (two-way diff, interactive)")
+	.description("Reset database to match file exactly (WARNING: deletes rows not in file)")
 	.requiredOption("-c, --connection <string>", "PostgreSQL connection string")
 	.requiredOption("-f, --file <file>", "JSON file to reset to")
 	.option("-y, --yes", "Skip confirmation prompt")
 	.action(async (options) => {
 		const editor = await DatabaseEditor.connect(options.connection);
 		try {
-			const changeSet = await editor.preview(options.file);
+			// Two-way diff: DB vs file (not three-way)
+			const changeSet = await editor.previewReset(options.file);
+
 			if (changeSet.changes.length === 0) {
 				console.log("No changes to apply.");
 				return;
 			}
 
 			printChangeSet(changeSet);
+			console.log("\n⚠️  WARNING: Reset will delete any rows in the database that are not in the file!");
 
 			if (!options.yes) {
 				const confirmed = await confirm("\nApply these changes? This will reset the database to match the file.");

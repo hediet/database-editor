@@ -12,28 +12,28 @@ export type {
   UpdateChange,
   DeleteChange,
   ChangeSet,
-} from './model';
+} from './model.ts';
 
 export {
   createSchema,
   createFlatDataset,
   flatDatasetToObject,
   isPartialMarker,
-} from './model';
+} from './model.ts';
 
 // Schema extraction
-export type { DbClient } from './schemaExtractor';
-export { extractSchema } from './schemaExtractor';
+export type { DbClient } from './schemaExtractor.ts';
+export { extractSchema } from './schemaExtractor.ts';
 
 // Diff algorithm
-export { diff } from './diff';
+export { diff } from './diff.ts';
 
 // SQL generation
-export type { SqlStatement } from './sqlGenerator';
-export { generateSql, orderChangesByDependency, escapeIdentifier } from './sqlGenerator';
+export type { SqlStatement } from './sqlGenerator.ts';
+export { generateSql, orderChangesByDependency, escapeIdentifier } from './sqlGenerator.ts';
 
 // Sync engine
-export { SyncEngine } from './syncEngine';
+export { SyncEngine } from './syncEngine.ts';
 
 // Ownership tree
 export type {
@@ -41,12 +41,12 @@ export type {
   ClassifiedRelationship,
   OwnershipEdge,
   OwnershipTree,
-} from './ownershipTree';
-export { buildOwnershipTree } from './ownershipTree';
+} from './ownershipTree.ts';
+export { buildOwnershipTree } from './ownershipTree.ts';
 
 // Nested format
-export type { NestedRow, RefMarker, ToNestedOptions, NestedResult } from './nested';
-export { toNested, fromNested, isRefMarker } from './nested';
+export type { NestedRow, RefMarker, ToNestedOptions, NestedResult } from './nested.ts';
+export { toNested, fromNested, isRefMarker } from './nested.ts';
 
 // JSON Schema generation
 export type {
@@ -54,10 +54,10 @@ export type {
   SchemaMode,
   JsonSchemaOptions,
   NestedJsonSchemaOptions,
-} from './jsonSchemaGenerator';
-export { generateJsonSchema, generateNestedJsonSchema } from './jsonSchemaGenerator';
+} from './jsonSchemaGenerator.ts';
+export { generateJsonSchema, generateNestedJsonSchema } from './jsonSchemaGenerator.ts';
 
 // Mermaid diagram generation
-export type { MermaidOptions } from './mermaidGenerator';
-export { generateMermaid } from './mermaidGenerator';
+export type { MermaidOptions } from './mermaidGenerator.ts';
+export { generateMermaid } from './mermaidGenerator.ts';
 

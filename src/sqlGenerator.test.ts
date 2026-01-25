@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest';
-import { generateSql, orderChangesByDependency } from './sqlGenerator';
-import { createSchema, ChangeSet } from './model';
+import { generateSql, orderChangesByDependency } from './sqlGenerator.ts';
+import { createSchema, ChangeSet } from './model.ts';
 
 describe('generateSql', () => {
   test('generates INSERT statement', () => {

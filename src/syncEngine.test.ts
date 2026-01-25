@@ -1,8 +1,8 @@
 import { describe, test, expect, beforeEach } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
-import { SyncEngine } from './syncEngine';
-import { extractSchema } from './schemaExtractor';
-import { createFlatDataset } from './model';
+import { SyncEngine } from './syncEngine.ts';
+import { extractSchema } from './schemaExtractor.ts';
+import { createFlatDataset } from './model.ts';
 
 describe('SyncEngine', () => {
   let db: PGlite;
@@ -27,7 +27,7 @@ describe('SyncEngine', () => {
         User: [{ id: 'user-1', name: 'Alice' }],
       });
 
-      const preview = await engine.preview(desired);
+      const preview = await engine.diffAgainstDb(desired);
 
       expect(preview.changes.map(c => ({ type: c.type, table: c.table }))).toMatchInlineSnapshot(`
         [
@@ -52,7 +52,7 @@ describe('SyncEngine', () => {
         User: [],
       });
 
-      const preview = await engine.preview(desired);
+      const preview = await engine.diffAgainstDb(desired);
 
       expect(preview.changes.map(c => ({ type: c.type, table: c.table }))).toMatchInlineSnapshot(`
         [

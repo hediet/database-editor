@@ -1,5 +1,5 @@
-import type { FlatDataset, FlatRow, PartialMarker } from "./model";
-import { isPartialMarker } from "./model";
+import type { FlatDataset, FlatRow, PartialMarker } from "./model.ts";
+import { isPartialMarker } from "./model.ts";
 
 /**
  * Metadata fields that can appear at the top level of a flat JSON file.

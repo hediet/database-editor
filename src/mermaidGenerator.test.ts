@@ -1,7 +1,7 @@
 import { describe, test, expect } from "vitest";
-import { generateMermaid } from "./mermaidGenerator";
-import { createSchema, type Table, type Relationship } from "./model";
-import { buildOwnershipTree } from "./ownershipTree";
+import { generateMermaid } from "./mermaidGenerator.ts";
+import { createSchema, type Table, type Relationship } from "./model.ts";
+import { buildOwnershipTree } from "./ownershipTree.ts";
 import mermaid from "mermaid";
 
 // Initialize mermaid for testing (browser-like environment via jsdom in vitest)

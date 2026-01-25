@@ -1,7 +1,7 @@
-import type { Schema, FlatDataset, FlatRow, ChangeSet } from './model';
-import type { DbClient } from './schemaExtractor';
-import { diff } from './diff';
-import { generateSql, orderChangesByDependency, escapeIdentifier } from './sqlGenerator';
+import type { Schema, FlatDataset, FlatRow, ChangeSet } from './model.ts';
+import type { DbClient } from './schemaExtractor.ts';
+import { diff } from './diff.ts';
+import { generateSql, orderChangesByDependency, escapeIdentifier } from './sqlGenerator.ts';
 
 export interface FetchOptions {
   /** Maximum rows to fetch per table. Undefined means no limit. */
@@ -66,11 +66,46 @@ export class SyncEngine {
 
   /**
    * Preview changes without applying them (dry run).
+   * Two-way diff: compares current DB state vs desired state.
    */
-  async preview(desired: FlatDataset): Promise<ChangeSet> {
+  async diffAgainstDb(desired: FlatDataset): Promise<ChangeSet> {
     const { dataset: current } = await this.fetchCurrentData();
     const changes = diff(this._schema, current, desired);
     return orderChangesByDependency(this._schema, changes);
+  }
+
+  /**
+   * Preview changes using three-way diff.
+   * Compares base (original dump) vs desired (edited file) to find user's changes.
+   */
+  diffAgainstBase(base: FlatDataset, desired: FlatDataset): ChangeSet {
+    const changes = diff(this._schema, base, desired);
+    return orderChangesByDependency(this._schema, changes);
+  }
+
+  /**
+   * Apply a pre-computed changeset to the database.
+   * Executes in a transaction - rolls back on any error.
+   */
+  async applyChanges(changes: ChangeSet): Promise<void> {
+    if (changes.changes.length === 0) {
+      return;
+    }
+
+    const statements = generateSql(changes);
+
+    // Execute in transaction
+    await this._client.query('BEGIN');
+
+    try {
+      for (const stmt of statements) {
+        await this._client.query(stmt.sql, stmt.params);
+      }
+      await this._client.query('COMMIT');
+    } catch (error) {
+      await this._client.query('ROLLBACK');
+      throw error;
+    }
   }
 
   /**
@@ -78,7 +113,7 @@ export class SyncEngine {
    * Executes in a transaction - rolls back on any error.
    */
   async apply(desired: FlatDataset): Promise<ChangeSet> {
-    const changes = await this.preview(desired);
+    const changes = await this.diffAgainstDb(desired);
 
     if (changes.changes.length === 0) {
       return changes;

@@ -1,4 +1,4 @@
-import type { Schema, ChangeSet, FlatRow } from './model';
+import type { Schema, ChangeSet, FlatRow } from './model.ts';
 
 export interface SqlStatement {
   sql: string;

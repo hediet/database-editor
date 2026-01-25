@@ -1,7 +1,7 @@
 import { describe, test, expect } from "vitest";
-import { generateJsonSchema, generateNestedJsonSchema } from "./jsonSchemaGenerator";
-import { createSchema, type Table, type Relationship } from "./model";
-import { buildOwnershipTree } from "./ownershipTree";
+import { generateJsonSchema, generateNestedJsonSchema } from "./jsonSchemaGenerator.ts";
+import { createSchema, type Table, type Relationship } from "./model.ts";
+import { buildOwnershipTree } from "./ownershipTree.ts";
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
 
@@ -273,7 +273,6 @@ describe("generateNestedJsonSchema", () => {
 		expect(Object.keys(jsonSchema.properties)).toMatchInlineSnapshot(`
 			[
 			  "$schema",
-			  "$connection",
 			  "$base",
 			  "user",
 			]

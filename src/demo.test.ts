@@ -14,12 +14,12 @@
 
 import { describe, test, expect, beforeEach } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
-import { SyncEngine } from "./syncEngine";
-import { extractSchema } from "./schemaExtractor";
-import { buildOwnershipTree } from "./ownershipTree";
-import { toNested, fromNested } from "./nested";
-import { generateNestedJsonSchema } from "./jsonSchemaGenerator";
-import { generateSql } from "./sqlGenerator";
+import { SyncEngine } from "./syncEngine.ts";
+import { extractSchema } from "./schemaExtractor.ts";
+import { buildOwnershipTree } from "./ownershipTree.ts";
+import { toNested, fromNested } from "./nested.ts";
+import { generateNestedJsonSchema } from "./jsonSchemaGenerator.ts";
+import { generateSql } from "./sqlGenerator.ts";
 
 describe("Demo: Complete Workflow", () => {
 	let db: PGlite;
@@ -161,9 +161,6 @@ describe("Demo: Complete Workflow", () => {
 			    "$schema": {
 			      "type": "string"
 			    },
-			    "$connection": {
-			      "type": "string"
-			    },
 			    "$base": {
 			      "type": "string"
 			    },
@@ -194,6 +191,9 @@ describe("Demo: Complete Workflow", () => {
 			          "type": [
 			            "string",
 			            "null"
+			          ]
+			        }
+			      },
 			// ... truncated"
 		`);
 
@@ -339,7 +339,7 @@ describe("Demo: Complete Workflow", () => {
 		// 7. Convert back to flat and compute diff
 		// ========================================
 		const editedFlat = fromNested(editableData, schema, tree);
-		const changeSet = await engine.preview(editedFlat);
+		const changeSet = await engine.diffAgainstDb(editedFlat);
 
 		expect(
 			changeSet.changes.map((c) => ({

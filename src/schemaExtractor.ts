@@ -1,4 +1,4 @@
-import type { Schema, Table, Column, Relationship } from './model';
+import type { Schema, Table, Column, Relationship } from './model.ts';
 
 /**
  * Database client interface - compatible with both pg.Client and PGlite

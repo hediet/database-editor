@@ -1,4 +1,4 @@
-import type { Schema, Relationship } from "./model";
+import type { Schema, Relationship } from "./model.ts";
 
 /**
  * Classification of a relationship for ownership purposes.
@@ -55,13 +55,13 @@ export interface OwnershipTree {
  */
 export function buildOwnershipTree(schema: Schema): OwnershipTree {
 	const classified: ClassifiedRelationship[] = [];
-	
+
 	// Group incoming compositions by target table
 	const incomingCompositions = new Map<string, Relationship[]>();
-	
+
 	for (const rel of schema.relationships) {
 		const kind = classifyRelationship(rel);
-		
+
 		if (kind === "composition") {
 			const existing = incomingCompositions.get(rel.fromTable) ?? [];
 			existing.push(rel);
@@ -70,17 +70,17 @@ export function buildOwnershipTree(schema: Schema): OwnershipTree {
 			classified.push({ relationship: rel, kind, isDominant: false });
 		}
 	}
-	
+
 	// For each table, pick dominant composition (if multiple)
 	const dominantParent = new Map<string, Relationship>();
-	
+
 	for (const [childTable, compositions] of incomingCompositions) {
 		if (compositions.length === 0) continue;
-		
+
 		// Pick dominant using heuristics
 		const dominant = selectDominant(compositions, schema);
 		dominantParent.set(childTable, dominant);
-		
+
 		for (const rel of compositions) {
 			classified.push({
 				relationship: rel,
@@ -89,7 +89,7 @@ export function buildOwnershipTree(schema: Schema): OwnershipTree {
 			});
 		}
 	}
-	
+
 	// Build children map (for getChildren)
 	const childrenMap = new Map<string, OwnershipEdge[]>();
 	for (const [childTable, rel] of dominantParent) {
@@ -99,12 +99,12 @@ export function buildOwnershipTree(schema: Schema): OwnershipTree {
 			relationship: rel,
 			foreignKeyColumns: [...rel.fromColumns],
 		};
-		
+
 		const existing = childrenMap.get(rel.toTable) ?? [];
 		existing.push(edge);
 		childrenMap.set(rel.toTable, existing);
 	}
-	
+
 	// Find root tables (tables with no dominant parent)
 	const roots: string[] = [];
 	for (const tableName of schema.tables.keys()) {
@@ -113,7 +113,7 @@ export function buildOwnershipTree(schema: Schema): OwnershipTree {
 		}
 	}
 	roots.sort(); // Deterministic order
-	
+
 	return {
 		roots,
 		getChildren(tableName: string): readonly OwnershipEdge[] {
@@ -141,12 +141,12 @@ function classifyRelationship(rel: Relationship): RelationshipKind {
 	if (rel.fromTable === rel.toTable) {
 		return "reference";
 	}
-	
+
 	// CASCADE implies ownership/composition
 	if (rel.onDelete === "CASCADE") {
 		return "composition";
 	}
-	
+
 	// Everything else is a reference
 	return "reference";
 }
@@ -168,6 +168,6 @@ function selectDominant(compositions: Relationship[], _schema: Schema): Relation
 		// Alphabetical fallback
 		return a.toTable.localeCompare(b.toTable);
 	});
-	
+
 	return sorted[0];
 }

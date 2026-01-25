@@ -3,9 +3,12 @@ import { PGlite } from "@electric-sql/pglite";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
-import { DatabaseEditor } from "./databaseEditor";
-import Ajv from "ajv";
-import addFormats from "ajv-formats";
+import { DatabaseEditor } from "./databaseEditor.ts";
+import AjvModule from "ajv";
+import addFormatsModule from "ajv-formats";
+
+const Ajv = AjvModule.default ?? AjvModule;
+const addFormats = addFormatsModule.default ?? addFormatsModule;
 
 describe("DatabaseEditor", () => {
 	let db: PGlite;
@@ -314,6 +317,169 @@ describe("DatabaseEditor", () => {
 			// Base file should now reflect new state
 			const baseContent = JSON.parse(fs.readFileSync(basePath, "utf-8"));
 			expect(baseContent.User[0].name).toBe("Updated");
+		});
+	});
+
+	describe("sync (three-way merge)", () => {
+		test("only applies user changes, preserving concurrent DB changes", async () => {
+			await db.exec(`
+				CREATE TABLE "User" (id TEXT PRIMARY KEY, name TEXT);
+				INSERT INTO "User" VALUES ('u1', 'Alice');
+			`);
+			editor = await DatabaseEditor.fromClient(db);
+
+			// Create .db-editor dir and base file (original state)
+			const dbEditorDir = path.join(tempDir, ".db-editor");
+			fs.mkdirSync(dbEditorDir);
+			const basePath = path.join(dbEditorDir, "data.base.json");
+			fs.writeFileSync(basePath, JSON.stringify({ User: [{ id: "u1", name: "Alice" }] }));
+
+			// Simulate concurrent change: someone else adds a user directly to DB
+			await db.exec(`INSERT INTO "User" VALUES ('u2', 'Bob')`);
+
+			// User edits their dump file: adds u3 (but doesn't have u2 since they haven't re-dumped)
+			const inputPath = path.join(tempDir, "data.json");
+			fs.writeFileSync(
+				inputPath,
+				JSON.stringify({
+					$base: "./.db-editor/data.base.json",
+					User: [
+						{ id: "u1", name: "Alice" },
+						{ id: "u3", name: "Charlie" },
+					],
+				})
+			);
+
+			await editor.sync(inputPath);
+
+			// Result should have ALL users: u1 (original), u2 (concurrent), u3 (user's add)
+			const result = await db.query('SELECT * FROM "User" ORDER BY id');
+			expect(result.rows).toMatchInlineSnapshot(`
+				[
+				  {
+				    "id": "u1",
+				    "name": "Alice",
+				  },
+				  {
+				    "id": "u2",
+				    "name": "Bob",
+				  },
+				  {
+				    "id": "u3",
+				    "name": "Charlie",
+				  },
+				]
+			`);
+		});
+
+		test("deletes only rows user explicitly removed from dump", async () => {
+			await db.exec(`
+				CREATE TABLE "User" (id TEXT PRIMARY KEY, name TEXT);
+				INSERT INTO "User" VALUES ('u1', 'Alice'), ('u2', 'Bob');
+			`);
+			editor = await DatabaseEditor.fromClient(db);
+
+			// Create base file with both users
+			const dbEditorDir = path.join(tempDir, ".db-editor");
+			fs.mkdirSync(dbEditorDir);
+			const basePath = path.join(dbEditorDir, "data.base.json");
+			fs.writeFileSync(basePath, JSON.stringify({
+				User: [{ id: "u1", name: "Alice" }, { id: "u2", name: "Bob" }]
+			}));
+
+			// User removes u2 from their file (explicit delete)
+			const inputPath = path.join(tempDir, "data.json");
+			fs.writeFileSync(
+				inputPath,
+				JSON.stringify({
+					$base: "./.db-editor/data.base.json",
+					User: [{ id: "u1", name: "Alice" }],
+				})
+			);
+
+			await editor.sync(inputPath);
+
+			// u2 should be deleted (user explicitly removed it)
+			const result = await db.query('SELECT * FROM "User" ORDER BY id');
+			expect(result.rows).toMatchInlineSnapshot(`
+				[
+				  {
+				    "id": "u1",
+				    "name": "Alice",
+				  },
+				]
+			`);
+		});
+
+		test("requires base file for sync", async () => {
+			await db.exec(`CREATE TABLE "User" (id TEXT PRIMARY KEY)`);
+			editor = await DatabaseEditor.fromClient(db);
+
+			// File without $base reference
+			const inputPath = path.join(tempDir, "data.json");
+			fs.writeFileSync(inputPath, JSON.stringify({ User: [] }));
+
+			await expect(editor.sync(inputPath)).rejects.toThrow(/base file/i);
+		});
+
+		test("supports nested format for sync", async () => {
+			await db.exec(`
+				CREATE TABLE "User" (id TEXT PRIMARY KEY, name TEXT);
+				CREATE TABLE "Post" (
+					id TEXT PRIMARY KEY, 
+					title TEXT, 
+					user_id TEXT REFERENCES "User"(id) ON DELETE CASCADE
+				);
+				INSERT INTO "User" VALUES ('u1', 'Alice');
+				INSERT INTO "Post" VALUES ('p1', 'Hello', 'u1');
+			`);
+			editor = await DatabaseEditor.fromClient(db);
+
+			// Create base file in flat format
+			const dbEditorDir = path.join(tempDir, ".db-editor");
+			fs.mkdirSync(dbEditorDir);
+			const basePath = path.join(dbEditorDir, "data.base.json");
+			fs.writeFileSync(basePath, JSON.stringify({
+				User: [{ id: "u1", name: "Alice" }],
+				Post: [{ id: "p1", title: "Hello", user_id: "u1" }],
+			}));
+
+			// User edits in nested format: adds a new post
+			const inputPath = path.join(tempDir, "data.json");
+			fs.writeFileSync(
+				inputPath,
+				JSON.stringify({
+					$base: "./.db-editor/data.base.json",
+					user: [
+						{
+							id: "u1",
+							name: "Alice",
+							post: [
+								{ id: "p1", title: "Hello" },
+								{ id: "p2", title: "World" },
+							],
+						},
+					],
+				})
+			);
+
+			await editor.sync(inputPath);
+
+			const result = await db.query('SELECT * FROM "Post" ORDER BY id');
+			expect(result.rows).toMatchInlineSnapshot(`
+				[
+				  {
+				    "id": "p1",
+				    "title": "Hello",
+				    "user_id": "u1",
+				  },
+				  {
+				    "id": "p2",
+				    "title": "World",
+				    "user_id": "u1",
+				  },
+				]
+			`);
 		});
 	});
 });

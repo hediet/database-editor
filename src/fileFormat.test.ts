@@ -1,11 +1,11 @@
 import { describe, test, expect, beforeEach } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
-import { extractSchema } from "./schemaExtractor";
-import { SyncEngine } from "./syncEngine";
+import { extractSchema } from "./schemaExtractor.ts";
+import { SyncEngine } from "./syncEngine.ts";
 import {
 	serializeFlatDataset,
 	parseFlatDataset
-} from "./fileFormat";
+} from "./fileFormat.ts";
 
 describe("fileFormat", () => {
 	let db: PGlite;

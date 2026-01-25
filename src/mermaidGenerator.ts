@@ -1,5 +1,5 @@
-import type { Schema } from "./model";
-import type { OwnershipTree } from "./ownershipTree";
+import type { Schema } from "./model.ts";
+import type { OwnershipTree } from "./ownershipTree.ts";
 
 export interface MermaidOptions {
 	/** Include column details in tables */

@@ -1,9 +1,9 @@
 import { describe, test, expect, beforeEach } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
-import { extractSchema } from "./schemaExtractor";
-import { buildOwnershipTree } from "./ownershipTree";
-import { toNested, fromNested } from "./nested";
-import { createFlatDataset } from "./model";
+import { extractSchema } from "./schemaExtractor.ts";
+import { buildOwnershipTree } from "./ownershipTree.ts";
+import { toNested, fromNested } from "./nested.ts";
+import { createFlatDataset } from "./model.ts";
 
 describe("nested", () => {
 	let db: PGlite;

@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest';
-import { diff } from './diff';
-import { createFlatDataset, createSchema } from './model';
+import { diff } from './diff.ts';
+import { createFlatDataset, createSchema } from './model.ts';
 
 describe('diff', () => {
   const schema = createSchema([
